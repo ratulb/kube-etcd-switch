@@ -1,0 +1,17 @@
+{
+  "CN": "#etcd-host#",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "IN",
+      "L": "BLR",
+      "O": "etcd-server",
+      "OU": "k8s-cluster-from-source",
+      "ST": "karnataka"
+    }
+  ]
+}
+
