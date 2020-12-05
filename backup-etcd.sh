@@ -16,7 +16,7 @@ SNAPSHOT_DIR=${SNAPSHOT_PATH%/*}
 mkdir -p $SNAPSHOT_DIR
 
 IP_ADDRESS=${IP_ADDRESS:-$(hostname -i)}
-ETCD_CERT=${ETCD_CERT:-$(hostname)}
+ETCD_CERT=${ETCD_CERT:-"server"}
 
 ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/${ETCD_CERT}.crt --key=/etc/kubernetes/pki/etcd/${ETCD_CERT}.key --endpoints=$IP_ADDRESS:2379 snapshot save $SNAPSHOT_PATH
 
