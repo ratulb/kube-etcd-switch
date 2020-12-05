@@ -1,4 +1,5 @@
 #!/usr/bin/env bash 
+#set -e
 export usr=$(whoami)
 read_setup()
 {
@@ -66,19 +67,24 @@ if ! [ -x "$(command -v etcdctl)" ];
  fi
 }
 
+
 function test1 {
- echo " check 1 $host"
- echo " check 2 $ip"
- echo " check 3 `hostname`"
- echo " check 4 $(hostname -i)"
- 
- host_ip=$(hostname -i)
 
- echo "host_ip : $host_ip"
 
- if  [ "$hostname = $host" ] && [  "$(hostname -i) = $ip " ]  
-    then echo This host yes
-    else echo Not this host
+ OLD_INIT_CLUSTER_TOKEN=$(cat etcd.yaml | grep initial-cluster-token)
+ echo "check 0 : $OLD_INIT_CLUSTER_TOKEN"
+ if [ ! -z "${OLD_INIT_CLUSTER_TOKEN}"  ]; then
+     echo "check1"
+     OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
+     echo "check2 : $OLD_INIT_CLUSTER_TOKEN"
+     sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
+     echo "check3"
+   else
+     echo "check4"
+     sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml
+     echo "check5"
  fi
+
+
 }
 

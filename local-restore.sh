@@ -34,31 +34,40 @@ ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$(hostname) --data-
 
 mv /etc/kubernetes/manifests/kube-apiserver.yaml .
 mv /etc/kubernetes/manifests/etcd.yaml . 
-cp etcd.yaml etcd.yaml.copy
+cp etcd.yaml .etcd.yaml.copy
 
 OLD_DATA_DIR=$(cat etcd.yaml | grep "\-\-data-dir=")
 OLD_DATA_DIR=${OLD_DATA_DIR:17}
 sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.yaml
-#initial-cluster-token
 
-OLD_INIT_CLUSTER_TOKEN=$(cat etcd.yaml | grep initial-cluster-token)
-if [ ! -z "${OLD_INIT_CLUSTER_TOKEN}"  ]; then
-     OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
-     sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
-   else
-     sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml    
- fi
+#initial-cluster-token
+sed -i '/initial-cluster-token/d' etcd.yaml
+sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml    
 
 #OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
-
 #sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
 
 mv etcd.yaml /etc/kubernetes/manifests/
-
-sleep_few_secs
-
 mv kube-apiserver.yaml /etc/kubernetes/manifests/
+
+systemctl restart kubelet
+sleep 2
+prnt_msg "Post etcd restore - checking kube-system pods..."
+rm status-report 2> /dev/null
+
+kubectl -n kube-system get pod | tee status-report
+
+status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
+i=6
+while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
+  sleep $i
+  i=$((i-2))
+  rm status-report 
+  kubectl -n kube-system get pod | tee status-report
+  status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
+done
+
+rm status-report
 
 prnt_msg "Snapshot restored"
 
-kubectl get pod
