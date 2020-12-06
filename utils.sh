@@ -6,10 +6,14 @@ read_setup()
   
   etcd_ips=
   etcd_names=
+  initial_cluster_token=
+  data_dir=
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
       "sleep_time") export sleep_time="$value" ;;
+      "initial_cluster_token") export initial_cluster_token="$value" ;;
+      "data_dir") export data_dir="$value" ;;
       "#"*) ;;
 
     esac
@@ -46,13 +50,14 @@ k8_debug()
  kubectl run -i --tty --rm debug --image=busybox:1.28 --restart=Never -- sh 
 }
 
-function install_etcdctl
+install_etcdctl()
 {
 if ! [ -x "$(command -v etcdctl)" ]; 
    then 
      prnt_msg "Installing etcdctl"
      ETCD_VER="3.4.14"
      ETCD_VER=${1:-$ETCD_VER}
+     echo $ETCD_VER
      DOWNLOAD_URL=https://github.com/etcd-io/etcd/releases/download
      prnt_msg "Downloading etcd $ETCD_VER from $DOWNLOAD_URL"
      wget -q --timestamping ${DOWNLOAD_URL}/v${ETCD_VER}/etcd-v${ETCD_VER}-linux-amd64.tar.gz -O /tmp/etcd-v${ETCD_VER}-linux-amd64.tar.gz
@@ -68,23 +73,25 @@ if ! [ -x "$(command -v etcdctl)" ];
 }
 
 
-function test1 {
-
-
- OLD_INIT_CLUSTER_TOKEN=$(cat etcd.yaml | grep initial-cluster-token)
- echo "check 0 : $OLD_INIT_CLUSTER_TOKEN"
- if [ ! -z "${OLD_INIT_CLUSTER_TOKEN}"  ]; then
-     echo "check1"
-     OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
-     echo "check2 : $OLD_INIT_CLUSTER_TOKEN"
-     sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
-     echo "check3"
-   else
-     echo "check4"
-     sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml
-     echo "check5"
+suffix() {
+ #OLD_INIT_CLUSTER_TOKEN=$(cat etcd.yaml | grep initial-cluster-token)
+ #if [ ! -z "${OLD_INIT_CLUSTER_TOKEN}"  ]; then
+ #    OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
+ #    sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
+ #  else
+ #    sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml
+ #fi
+ cat .suffix &> /dev/null
+ if [ ! $? = 0 ]; then
+  token=$(date +%F_%H-%M-%S)
+  echo "suffix=$token" > .suffix
+ else 
+   token=$(cat .suffix | grep suffix | cut -d'=' -f 2)
+   if [ -z "$token" ]; then
+     token=$(date +%F_%H-%M-%S)
+     echo "suffix=$token" > .suffix
+   fi
  fi
-
-
-}
+ eval "$1=$token"
+ }
 

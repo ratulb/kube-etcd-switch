@@ -7,10 +7,10 @@
   --advertise-client-urls=https://#etcd-ip#:2379 \
   --cert-file=/etc/kubernetes/pki/etcd/#etcd-host#.crt \
   --client-cert-auth=true \
-  --initial-cluster-token=etcd-cluster-2 \
-  --data-dir=/var/lib/etcd-2 \
+  --initial-cluster-token=#initial-cluster-token# \
+  --data-dir=#data-dir# \
   --initial-advertise-peer-urls=https://#etcd-ip#:2380 \
-  --initial-cluster=#etcd-host#=https://#etcd-ip#:2380 \
+  --initial-cluster=#initial-cluster# \
   --key-file=/etc/kubernetes/pki/etcd/#etcd-host#.key \
   --listen-client-urls=https://127.0.0.1:2379,https://#etcd-ip#:2379 \
   --listen-metrics-urls=http://127.0.0.1:2381 \

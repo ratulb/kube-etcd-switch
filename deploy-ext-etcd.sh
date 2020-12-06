@@ -27,7 +27,10 @@ to etcd servers!"
 
 this_host=$(hostname)
 this_host_ip=$(hostname -i)
-
+cluster=''
+gendir=./generated
+mkdir -p $gendir
+mode=deploy
 for svr in $etcd_servers; do
  
  pair=(${svr//:/ })
@@ -40,27 +43,31 @@ for svr in $etcd_servers; do
      exit 1
  fi
  
-#Install etc & setup cert dird
+#Install etcd & setup cert dirs
  if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then 
     prnt_msg "Installing etcd on $ip"
-    . install-etcd.sh
-    . make-dirs.sh
+    #. install-etcd.sh
+    #. make-dirs.sh
   else 
     prnt_msg "Installing etcd on $ip"
-    . execute-file-remote.sh $ip install-etcd.sh
-    . execute-file-remote.sh $ip make-dirs.sh
+    #. execute-file-remote.sh $ip install-etcd.sh
+    #. execute-file-remote.sh $ip make-dirs.sh
  fi 
  
 #systemd file
  . gen-systemd.sh $host $ip
-
+ if [ -z $cluster ];
+   then
+     cluster=$host=https://$ip:2380
+   else
+     cluster+=,$host=https://$ip:2380
+ fi	  
 done
-
+echo "cluster -------> $cluster"
+sed -i "s|#initial-cluster#|$cluster|g" $gendir/*.service
 #gen cert
 echo 'y' | ./gen-certs.sh
-
-gendir=./generated
 
 #distribute files
 for svr in $etcd_servers; do
@@ -68,18 +75,18 @@ for svr in $etcd_servers; do
  host=${pair[0]}
  ip=${pair[1]}
 
-
   if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then
-    prnt_msg "Copying local iles on $ip"
-    cp $gendir/$host{-peer.*,.crt,.key} /etc/kubernetes/pki/etcd/
+    prnt_msg "Copying local files on $ip"
+    cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
     cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
-    mv /etc/kubernetes/manifests/etcd.yaml ./.etcd.yaml.copied
-    . start-etcd.sh
+    #mv /etc/kubernetes/manifests/etcd.yaml .etcd.yaml.copied
+   # . start-etcd.sh
   else
     prnt_msg "Copying on to $ip"
-    . copy-files.sh $host $ip
-    . execute-file-remote.sh $ip start-etcd.sh
+ #   . execute-file-remote.sh $ip make-dirs.sh
+  #  . copy-files.sh $host $ip
+    #. execute-file-remote.sh $ip start-etcd.sh
  fi
 
 done

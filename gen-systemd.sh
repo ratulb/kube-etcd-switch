@@ -9,11 +9,24 @@ fi
 
 gendir=./generated
 mkdir -p $gendir
-
+suffix=''
+suffix suffix
+token=${suffix}
+data_dir=${data_dir:-/var/lib/etcd-$token}
+initial_cluster_token=${initial_cluster_token:-$token}
+initial_cluster=${initial_cluster:-$1=https:\/\/$2:2380}
 cp etcd-systemd.template $gendir/$1-etcd.service
 cd $gendir
 sed -i "s/#etcd-host#/$1/g" $1-etcd.service
 sed -i "s/#etcd-ip#/$2/g" $1-etcd.service
-cd -
+sed -i "s|#data-dir#|${data_dir}|g" $1-etcd.service
+sed -i "s|#initial-cluster-token#|${initial_cluster_token}|g" $1-etcd.service
+if [ -z $mode ]; 
+  then
+    sed -i "s|#initial-cluster#|${initial_cluster}|g" $1-etcd.service
+fi
+
+
+cd - &> /dev/null
 
 

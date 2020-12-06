@@ -2,8 +2,8 @@
 #Generates the certicates for etcd servers using cfssl and ca.crt file from /etc/kubernetes/pki/etcd by default. Any ca can be used used overriding the default - as long apiserver certs can use the ca. 
 . utils.sh
 
-etcd_ca=/etc/kubernetes/pki/etcd/ca.crt
-etcd_key=/etc/kubernetes/pki/etcd/ca.key
+etcd_ca=${etcd_ca:-"/etc/kubernetes/pki/etcd/ca.crt"}
+etcd_key=${etcd_key:-"/etc/kubernetes/pki/etcd/ca.key"}
 
 if [ ! -f $etcd_ca ] || [ ! -f $etcd_key ]; then
     err_msg "$etcd_ca or/and $etcd_key not present!"
@@ -24,9 +24,7 @@ to etcd servers!"
  #   err_msg "\nAborted certificate generation\n"
   #  exit 1
 #fi
-if ! type cfssl > /dev/null 2>&1; then
  . install-cfssl.sh
-fi
 gendir=./generated
 mkdir -p ${gendir}
 rm -f ${gendir}/*.crt
@@ -51,8 +49,8 @@ for svr in $etcd_servers; do
   -ca=${etcd_ca} \
   -ca-key=${etcd_key} \
   -config=ca-csr.json \
-  -hostname=${host},${ip},127.0.0.1,localhost \
   -profile=client \
+  -hostname=${host},${ip},127.0.0.1,localhost \
   ${gendir}/${host}-csr.json | cfssljson -bare ${gendir}/${host}-client
 
  cfssl gencert \
@@ -71,39 +69,20 @@ for svr in $etcd_servers; do
   -profile=server \
   ${gendir}/${host}-csr.json | cfssljson -bare ${gendir}/${host}-server
 
- 
-  #if [ -d /etc/kubernetes/pki/etcd  ];
-   # then
-    #  if [ `hostname` = "$host" ];
-     #   then 
-#	  if [ "$(hostname -i)" = "$ip" ];
-#	    then
-#	      cd $gendir
-#	      mv $host-key.pem $host.key
-#	      mv $host.pem $host.crt
-#	      cp $host.key /etc/kubernetes/pki/etcd
-#	      cp $host.crt /etc/kubernetes/pki/etcd
-#	      cd -
-#         fi	      
-#      fi
-# fi
- ((count++))	
+ ((count++))
 done
 
 cd $gendir
+
 rm ./*.json
 rm ./*.csr
 
-#for file in $(ls . | grep "\-key.pem$"); do mv "$file" "${file%-*}.key"; done
-#for file in $(ls . | grep ".pem$"); do mv "$file" "${file%.*}.crt"; done
-
-#for file in $(ls . | grep ".key$"); do cp "$file" "${file%.*}-peer.key"; done
-#for file in $(ls . | grep ".crt$"); do cp "$file" "${file%.*}-peer.crt"; done
-
+for file in $(ls . | grep "\-key.pem$"); do mv "$file" "${file%-*}.key"; done
+for file in $(ls . | grep ".pem$"); do mv "$file" "${file%.*}.crt"; done
 
 cd - &> /dev/null
 
-count=$((count*4+count))
+count=$((count*6))
 tree | grep generated -A$count
 
 
