@@ -5,13 +5,13 @@
   [Service]
   ExecStart=/usr/local/bin/etcd \
   --advertise-client-urls=https://#etcd-ip#:2379 \
-  --cert-file=/etc/kubernetes/pki/etcd/#etcd-host#.crt \
+  --cert-file=/etc/kubernetes/pki/etcd/#etcd-host#-server.crt \
   --client-cert-auth=true \
   --initial-cluster-token=#initial-cluster-token# \
   --data-dir=#data-dir# \
   --initial-advertise-peer-urls=https://#etcd-ip#:2380 \
   --initial-cluster=#initial-cluster# \
-  --key-file=/etc/kubernetes/pki/etcd/#etcd-host#.key \
+  --key-file=/etc/kubernetes/pki/etcd/#etcd-host#-server.key \
   --listen-client-urls=https://127.0.0.1:2379,https://#etcd-ip#:2379 \
   --listen-metrics-urls=http://127.0.0.1:2381 \
   --listen-peer-urls=https://#etcd-ip#:2380 \

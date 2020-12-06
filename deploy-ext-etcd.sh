@@ -46,13 +46,13 @@ for svr in $etcd_servers; do
 #Install etcd & setup cert dirs
  if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then 
-    prnt_msg "Installing etcd on $ip"
-    #. install-etcd.sh
-    #. make-dirs.sh
+    prnt_msg "Installing etcd on localhost($ip)"
+    . install-etcd.sh
+    . make-dirs.sh
   else 
-    prnt_msg "Installing etcd on $ip"
-    #. execute-file-remote.sh $ip install-etcd.sh
-    #. execute-file-remote.sh $ip make-dirs.sh
+    prnt_msg "Installing etcd on host($ip)"
+    . execute-file-remote.sh $ip install-etcd.sh
+    . execute-file-remote.sh $ip make-dirs.sh
  fi 
  
 #systemd file
@@ -64,7 +64,6 @@ for svr in $etcd_servers; do
      cluster+=,$host=https://$ip:2380
  fi	  
 done
-echo "cluster -------> $cluster"
 sed -i "s|#initial-cluster#|$cluster|g" $gendir/*.service
 #gen cert
 echo 'y' | ./gen-certs.sh
@@ -81,12 +80,19 @@ for svr in $etcd_servers; do
     cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
     cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
     #mv /etc/kubernetes/manifests/etcd.yaml .etcd.yaml.copied
-   # . start-etcd.sh
+    #mv /etc/kubernetes/manifests/kube-apiserver.yaml .kube-apiserver.yaml.copied
+    #cp .kube-apiserver.yaml.copied kube-apiserver-external-etcd.yaml
+    . start-etcd.sh
+    sleep_few_secs
+    . etcd-status.cmd
+
   else
     prnt_msg "Copying on to $ip"
- #   . execute-file-remote.sh $ip make-dirs.sh
-  #  . copy-files.sh $host $ip
-    #. execute-file-remote.sh $ip start-etcd.sh
+    . execute-file-remote.sh $ip make-dirs.sh
+    . copy-files.sh $host $ip
+    . execute-file-remote.sh $ip start-etcd.sh
+    sleep_few_secs
+    . execute-file-remote.sh $ip etcd-status.cmd
  fi
 
 done
