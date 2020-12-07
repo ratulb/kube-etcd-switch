@@ -10,7 +10,6 @@ if [ ! -d /etc/kubernetes/pki/etcd ]; then
 fi
 
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-/var/lib/etcd-snapshot.db}
-#name=$(basename "$mypath" ".db")
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
 prnt_msg "Would store the snapshot to $ETCD_SNAPSHOT - ok? Can change the location by setting the ETCD_SNAPSHOT environment varibale. Do not modify contents underneath $SNAPSHOT_DIR"
 read -p "Proceed with the backup? " -n 1 -r
@@ -29,7 +28,6 @@ ETCD_CERT=${ETCD_CERT:-"server"}
 ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/${ETCD_CERT}.crt --key=/etc/kubernetes/pki/etcd/${ETCD_CERT}.key --endpoints=$IP_ADDRESS:2379 snapshot save $ETCD_SNAPSHOT
 
 encoded=$(basename -- "$ETCD_SNAPSHOT")
-#ext="${encoded##*.}"
 encoded="${encoded%.*}"
 cat /etc/kubernetes/manifests/etcd.yaml | base64 >  $SNAPSHOT_DIR/$encoded.nodelete
 
