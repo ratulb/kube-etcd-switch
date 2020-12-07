@@ -10,6 +10,16 @@ ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-/var/lib/etcd-snapshot.db}
 IP_ADDRESS=$(hostname -i)
 ETCD_CERT=${ETCD_CERT:-$(hostname)}
 
+restored_at=$(date +%F_%H-%M-%S)
+RESTORE_PATH=${RESTORE_PATH:-/var/lib/restore-$restored_at}
+
+prnt_msg  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH ok? Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
+read -p "Proceed with restore? " -n 1 -r
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    err_msg "\nAborted backup restore.\n"
+    exit 1
+fi
 if [ ! -f ${ETCD_SNAPSHOT} ]; then
     err_msg "Snapshot path ${ETCD_SNAPSHOT} does not exists!"
     exit 1
@@ -24,30 +34,39 @@ if (( exit_code > 1 )) ;
     prnt_msg "etcd snapshot ${ETCD_SNAPSHOT} looks good!"
 fi
 
-restored_at=$(date +%F_%H-%M-%S)
-RESTORE_PATH=${RESTORE_PATH:-/var/lib/restore-$restored_at}
 
-prnt_msg "Going to restore at location: ${RESTORE_PATH}"
+prnt_msg "Restoring at location: ${RESTORE_PATH}"
 rm -rf $RESTORE_PATH
 
 ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$(hostname) --data-dir=$RESTORE_PATH --initial-advertise-peer-urls=https://${IP_ADDRESS}:2380 --initial-cluster $(hostname)=https://${IP_ADDRESS}:2380 --initial-cluster-token=${RESTORE_PATH} --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/${ETCD_CERT}.crt --key=/etc/kubernetes/pki/etcd/${ETCD_CERT}.key --endpoints=https://${IP_ADDRESS}:2379
 
 mv /etc/kubernetes/manifests/kube-apiserver.yaml .
-mv /etc/kubernetes/manifests/etcd.yaml . 
-cp etcd.yaml .etcd.yaml.copy
 
-OLD_DATA_DIR=$(cat etcd.yaml | grep "\-\-data-dir=")
+if [ -f /etc/kubernetes/manifests/etcd.yaml ];
+  then 
+    mv /etc/kubernetes/manifests/etcd.yaml .etcd.yaml
+    cp .etcd.yaml etcd.draft
+  else
+    encoded=$(basename -- "$ETCD_SNAPSHOT")
+    encoded="${encoded%.*}"
+    SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
+    cat $SNAPSHOT_DIR/$encoded.nodelete | base64 -d > etcd.draft
+fi
+
+if [ ! -f etcd.draft ]; then
+ err_msg "Unable to locate etcd.yaml in the system. Not proceeding with restore!"
+ exit 1
+fi
+
+OLD_DATA_DIR=$(cat etcd.draft | grep "\-\-data-dir=")
 OLD_DATA_DIR=${OLD_DATA_DIR:17}
-sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.yaml
+sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
 
 #initial-cluster-token
-sed -i '/initial-cluster-token/d' etcd.yaml
-sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml    
+sed -i '/initial-cluster-token/d' etcd.draft
+sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.draft
 
-#OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
-#sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
-
-mv etcd.yaml /etc/kubernetes/manifests/
+mv etcd.draft /etc/kubernetes/manifests/etcd.yaml
 mv kube-apiserver.yaml /etc/kubernetes/manifests/
 
 systemctl restart kubelet

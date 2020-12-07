@@ -31,6 +31,11 @@ err_msg()
 {
 echo -e "\e[31m$1\e[0m"
 }
+
+warn_msg()
+{
+echo -e "\e[31m$1\e[0m"
+}
 conf_msg()
 {
  echo -e "\e[5m$1"
@@ -67,8 +72,7 @@ if ! [ -x "$(command -v etcdctl)" ];
     mv /tmp/etcd-download-loc/etcdctl /usr/local/bin
     etcdctl version
   else
-    prnt_msg "etcdctl already installed"
-    which etcdctl
+    prnt_msg "etcdctl already installed" %> /dev/null
  fi
 }
 
