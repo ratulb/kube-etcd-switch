@@ -6,13 +6,13 @@ etcd_ca=/etc/kubernetes/pki/etcd/ca.crt
 etcd_key=/etc/kubernetes/pki/etcd/ca.key
 
 if [ ! -f $etcd_ca ] || [ ! -f $etcd_key ]; then
-    err_msg "$etcd_ca or/and $etcd_key not present!"
+    err "$etcd_ca or/and $etcd_key not present!"
     exit 1
 fi
 
-prnt_msg "Etcd servers from setup.conf"
+prnt "Etcd servers from setup.conf"
 for svr in $etcd_servers; do
-  prnt_msg $svr
+  prnt $svr
 done
 
 echo  "Please make sure the SSH public key has been copied \
@@ -21,9 +21,23 @@ to etcd servers!"
 #read -p "Proceed with proceed with the external etcd deployment? " -n 1 -r
 #if [[ ! $REPLY =~ ^[Yy]$ ]]
 #then
- #   err_msg "\nAborted external etcd deployment.\n"
+ #   err "\nAborted external etcd deployment.\n"
   #  exit 1
 #fi
+
+#backup the current local installation. As long as current local k8s installtion is good we can spin off an etcd cluster based off of it.
+deploy_count=0
+
+if [ -d $pre_deploy_backup_loc ]; then
+  deploy_count=$(ls $pre_deploy_backup_loc/*.db | wc -l)
+fi
+((deploy_count++))
+ETCD_SNAPSHOT=$pre_deploy_backup_loc/predeploy-snapshot#$deploy_count.db
+
+echo 'y'| prompt=no ./embedded-etcd-backup.sh 
+
+exit 0
+
 
 this_host=$(hostname)
 this_host_ip=$(hostname -i)
@@ -39,24 +53,24 @@ for svr in $etcd_servers; do
  
  if [ -z $host ] || [ -z $ip ];
    then
-     err_msg "Host or IP address is not valid - can not proceed!"
+     err "Host or IP address is not valid - can not proceed!"
      exit 1
  fi
  
 #Install etcd & setup cert dirs
  if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then 
-    prnt_msg "Installing etcd on localhost($ip)"
-    . install-etcd.sh
-    . make-dirs.sh
+    prnt "Installing etcd on localhost($ip)"
+    . install-etcd.script
+    . make-dirs.script
   else 
-    prnt_msg "Installing etcd on host($ip)"
-    . execute-file-remote.sh $ip install-etcd.sh
-    . execute-file-remote.sh $ip make-dirs.sh
+    prnt "Installing etcd on host($ip)"
+    . execute-script-remote.sh $ip install-etcd.script
+    . execute-script-remote.sh $ip make-dirs.script
  fi 
  
 #systemd file
- . gen-systemd.sh $host $ip
+ . gen-systemd-config.sh $host $ip
  if [ -z $cluster ];
    then
      cluster=$host=https://$ip:2380
@@ -76,23 +90,20 @@ for svr in $etcd_servers; do
 
   if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then
-    prnt_msg "Copying local files on $ip"
+    prnt "Copying local files on $ip"
     cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
     cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
-    #mv /etc/kubernetes/manifests/etcd.yaml .etcd.yaml.copied
-    #mv /etc/kubernetes/manifests/kube-apiserver.yaml .kube-apiserver.yaml.copied
-    #cp .kube-apiserver.yaml.copied kube-apiserver-external-etcd.yaml
-    . start-etcd.sh
-    sleep_few_secs
-    . etcd-status.cmd
+    #. start-etcd.sh
+    #sleep_few_secs
+    #. etcd-status.script
 
   else
-    prnt_msg "Copying on to $ip"
-    . execute-file-remote.sh $ip make-dirs.sh
-    . copy-files.sh $host $ip
-    . execute-file-remote.sh $ip start-etcd.sh
-    sleep_few_secs
-    . execute-file-remote.sh $ip etcd-status.cmd
+    prnt "Copying on to $ip"
+    . execute-script-remote.sh $ip make-dirs.script
+    . copy-files-remote.sh $host $ip
+    #. execute-script-remote.sh $ip start-etcd.sh
+    #sleep_few_secs
+    #. execute-script-remote.sh $ip etcd-status.script
  fi
 
 done

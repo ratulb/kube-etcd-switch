@@ -2,11 +2,11 @@
 
 . utils.sh
 
-warn_msg  "This will erase externally installed etcd instance from this computer!!!"
+warn  "This will erase externally installed etcd instance from this computer!!!"
 read -p "Proceed with the uninstallation? " -n 1 -r
 if [[ ! $REPLY =~ ^[Yy]$ ]];
 then
-    prnt_msg "\nAborted etcd uninstall.\n"
+    prnt "\nAborted etcd uninstall.\n"
     exit 1
 fi
 data_dir=''
@@ -24,4 +24,4 @@ rm /usr/local/bin/etcdctl &> /dev/null
 systemctl daemon-reload
 apt autoremove
 
-prnt_msg "External etcd removed"
+prnt "External etcd removed"

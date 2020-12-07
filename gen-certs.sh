@@ -6,13 +6,13 @@ etcd_ca=${etcd_ca:-"/etc/kubernetes/pki/etcd/ca.crt"}
 etcd_key=${etcd_key:-"/etc/kubernetes/pki/etcd/ca.key"}
 
 if [ ! -f $etcd_ca ] || [ ! -f $etcd_key ]; then
-    err_msg "$etcd_ca or/and $etcd_key not present!"
+    err "$etcd_ca or/and $etcd_key not present!"
     exit 1
 fi
 
-prnt_msg "Etcd servers from setup.conf"
+prnt "Etcd servers from setup.conf"
 for svr in $etcd_servers; do
-  prnt_msg $svr
+  prnt $svr
 done
 
 echo  "Please make sure $HOME/.ssh/id_rsa.pub SSH public key has been copied \
@@ -21,7 +21,7 @@ to etcd servers!"
 #read -p "Proceed with certificate generation? " -n 1 -r
 #if [[ ! $REPLY =~ ^[Yy]$ ]]
 #then
- #   err_msg "\nAborted certificate generation\n"
+ #   err "\nAborted certificate generation\n"
   #  exit 1
 #fi
  . install-cfssl.sh
@@ -37,7 +37,7 @@ for svr in $etcd_servers; do
  
  if [ -z $host ] || [ -z $ip ];
    then
-     err_msg "Host or IP address is not valid - can not proceed!"
+     err "Host or IP address is not valid - can not proceed!"
      rm -rf $gendir
      exit 1
  fi

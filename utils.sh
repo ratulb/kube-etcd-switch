@@ -14,6 +14,7 @@ read_setup()
       "sleep_time") export sleep_time="$value" ;;
       "initial_cluster_token") export initial_cluster_token="$value" ;;
       "data_dir") export data_dir="$value" ;;
+      "pre_deploy_backup_loc") export pre_deploy_backup_loc="$value" ;;
       "#"*) ;;
 
     esac
@@ -22,21 +23,21 @@ read_setup()
 
 "read_setup"
 
-prnt_msg()
+prnt()
 {
  echo -e "\e[1;42m$1\e[0m"
 }
 
-err_msg()
+err()
 {
 echo -e "\e[31m$1\e[0m"
 }
 
-warn_msg()
+warn()
 {
 echo -e "\e[31m$1\e[0m"
 }
-conf_msg()
+ask()
 {
  echo -e "\e[5m$1"
 }
@@ -44,14 +45,14 @@ conf_msg()
 #Whatever is the default sleep_time
 sleep_few_secs()
 {
- prnt_msg "Sleeping few secs..."
+ prnt "Sleeping few secs..."
  sleep $sleep_time
 }
 
 #Launch busybox container called debug
 k8_debug()
 {
- prnt_msg "Setting up busybox debug container"
+ prnt "Setting up busybox debug container"
  kubectl run -i --tty --rm debug --image=busybox:1.28 --restart=Never -- sh 
 }
 
@@ -59,12 +60,12 @@ install_etcdctl()
 {
 if ! [ -x "$(command -v etcdctl)" ]; 
    then 
-     prnt_msg "Installing etcdctl"
+     prnt "Installing etcdctl"
      ETCD_VER="3.4.14"
      ETCD_VER=${1:-$ETCD_VER}
      echo $ETCD_VER
      DOWNLOAD_URL=https://github.com/etcd-io/etcd/releases/download
-     prnt_msg "Downloading etcd $ETCD_VER from $DOWNLOAD_URL"
+     prnt "Downloading etcd $ETCD_VER from $DOWNLOAD_URL"
      wget -q --timestamping ${DOWNLOAD_URL}/v${ETCD_VER}/etcd-v${ETCD_VER}-linux-amd64.tar.gz -O /tmp/etcd-v${ETCD_VER}-linux-amd64.tar.gz
     rm -rf /tmp/etcd-download-loc
     mkdir /tmp/etcd-download-loc
@@ -72,7 +73,7 @@ if ! [ -x "$(command -v etcdctl)" ];
     mv /tmp/etcd-download-loc/etcdctl /usr/local/bin
     etcdctl version
   else
-    prnt_msg "etcdctl already installed" %> /dev/null
+    prnt "etcdctl already installed" %> /dev/null
  fi
 }
 

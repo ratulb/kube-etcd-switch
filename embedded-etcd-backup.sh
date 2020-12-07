@@ -5,17 +5,20 @@
 . utils.sh
 
 if [ ! -d /etc/kubernetes/pki/etcd ]; then
-  err_msg "Not found: /etc/kubernetes/pki/etcd"
+  err "Not found: /etc/kubernetes/pki/etcd"
   exit 1
 fi
 
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-/var/lib/etcd-snapshot.db}
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
-prnt_msg "Would store the snapshot to $ETCD_SNAPSHOT - ok? Can change the location by setting the ETCD_SNAPSHOT environment varibale. Do not modify contents underneath $SNAPSHOT_DIR"
+if [ -z $prompt ]; then
+  prnt "Would store the snapshot to $ETCD_SNAPSHOT - ok? Can change the location by setting the ETCD_SNAPSHOT environment varibale. Do not modify contents underneath $SNAPSHOT_DIR"
+fi
+
 read -p "Proceed with the backup? " -n 1 -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
-    err_msg "\nAborted backup.\n"
+    err "\nAborted backup.\n"
     exit 1
 fi
 install_etcdctl
@@ -31,6 +34,6 @@ encoded=$(basename -- "$ETCD_SNAPSHOT")
 encoded="${encoded%.*}"
 cat /etc/kubernetes/manifests/etcd.yaml | base64 >  $SNAPSHOT_DIR/$encoded.nodelete
 
-prnt_msg "etcd snapshot saved at $ETCD_SNAPSHOT and status is:"
+prnt "etcd snapshot saved at $ETCD_SNAPSHOT and status is:"
 etcdctl snapshot status $ETCD_SNAPSHOT --write-out=table
 
