@@ -36,7 +36,7 @@ ETCD_SNAPSHOT=$pre_deploy_backup_loc/predeploy-snapshot#$deploy_count.db
 
 echo 'y'| prompt=no ./embedded-etcd-backup.sh 
 
-exit 0
+
 
 
 this_host=$(hostname)
@@ -69,18 +69,11 @@ for svr in $etcd_servers; do
     . execute-script-remote.sh $ip make-dirs.script
  fi 
  
-#systemd file
- . gen-systemd-config.sh $host $ip
- if [ -z $cluster ];
-   then
-     cluster=$host=https://$ip:2380
-   else
-     cluster+=,$host=https://$ip:2380
- fi	  
 done
-sed -i "s|#initial-cluster#|$cluster|g" $gendir/*.service
 #gen cert
 echo 'y' | ./gen-certs.sh
+
+echo 'y' | ./cluster-etcd-restore.sh
 
 #distribute files
 for svr in $etcd_servers; do
@@ -93,17 +86,36 @@ for svr in $etcd_servers; do
     prnt "Copying local files on $ip"
     cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
     cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
-    #. start-etcd.sh
-    #sleep_few_secs
-    #. etcd-status.script
-
+    . start-etcd.script
+    sleep_few_secs
+    systemctl status etcd
   else
     prnt "Copying on to $ip"
     . execute-script-remote.sh $ip make-dirs.script
-    . copy-files-remote.sh $host $ip
-    #. execute-script-remote.sh $ip start-etcd.sh
-    #sleep_few_secs
-    #. execute-script-remote.sh $ip etcd-status.script
+    . copy-certs-remote.sh $host $ip
+    . execute-script-remote.sh $ip start-etcd.script
+    sleep_few_secs
+    echo "systemctl status etcd" > status.script
+    . execute-script-remote.sh $ip status.script
  fi
 
 done
+
+systemctl restart kubelet
+sleep 2
+prnt "Post etcd restore - checking kube-system pods..."
+rm status-report 2> /dev/null
+
+kubectl -n kube-system get pod | tee status-report
+
+status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
+i=6
+while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
+  sleep $i
+  i=$((i-2))
+  rm status-report
+  kubectl -n kube-system get pod | tee status-report
+  status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
+done
+
+rm status-report

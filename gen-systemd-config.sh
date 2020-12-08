@@ -12,7 +12,7 @@ mkdir -p $gendir
 suffix=''
 suffix suffix
 token=${suffix}
-data_dir=${data_dir:-/var/lib/etcd-$token}
+data_dir=${data_dir:-$default_restore_path-$token}
 initial_cluster_token=${initial_cluster_token:-$token}
 initial_cluster=${initial_cluster:-$1=https:\/\/$2:2380}
 cp etcd-systemd-config.template $gendir/$1-etcd.service
@@ -26,7 +26,4 @@ if [ -z $mode ];
     sed -i "s|#initial-cluster#|${initial_cluster}|g" $1-etcd.service
 fi
 
-
 cd - &> /dev/null
-
-

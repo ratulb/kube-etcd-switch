@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+ETCD_SNAPSHOT=#ETCD_SNAPSHOT#
+RESTORE_PATH=#RESTORE_PATH#
+INITIAL_CLUSTER=#INITIAL_CLUSTER#
+INITIAL_CLUSTER_TOKEN=#INITIAL_CLUSTER_TOKEN#
+IP_ADDRESS=$(hostname -i)
+echo "Restoring $ETCD_SNAPSHOT at location: $RESTORE_PATH on $(hostname)"
+
+etcdctl snapshot status $ETCD_SNAPSHOT || exit_code=$?
+if (( exit_code != 0 )) ;
+  then
+    echo "Status check on the snapshot returned error! Is the snapshot corrupt?"
+    exit $exit_code
+  else
+    echo "etcd snapshot $ETCD_SNAPSHOT looks good!"
+fi
+rm -rf $RESTORE_PATH
+ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$(hostname) \
+	--data-dir=$RESTORE_PATH \
+	--initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
+	--initial-cluster $INITIAL_CLUSTER \
+	--initial-cluster-token=$INITIAL_CLUSTER_TOKEN \
+	--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+	--cert=/etc/kubernetes/pki/etcd/$(hostname)-server.crt \
+	--key=/etc/kubernetes/pki/etcd/$(hostname)-server.key 
+
+if [ $? = 0 ]; 
+  then
+    echo "Successfully restored on $IP_ADDRESS"
+  else
+    echo "Failed snapshot restore on $IP_ADDRESS"
+fi
+

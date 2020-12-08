@@ -8,6 +8,7 @@ read_setup()
   etcd_names=
   initial_cluster_token=
   data_dir=
+  default_restore_path=
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
@@ -15,6 +16,7 @@ read_setup()
       "initial_cluster_token") export initial_cluster_token="$value" ;;
       "data_dir") export data_dir="$value" ;;
       "pre_deploy_backup_loc") export pre_deploy_backup_loc="$value" ;;
+      "default_restore_path") export default_restore_path="$value" ;;
       "#"*) ;;
 
     esac

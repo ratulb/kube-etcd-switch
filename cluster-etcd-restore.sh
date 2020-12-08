@@ -1,87 +1,122 @@
 #!/usr/bin/env bash
+
+. utils.sh
   
+default_snapshot=
+if [ -d "$pre_deploy_backup_loc" ] && [ -f "$pre_deploy_backup_loc"/*.db ]; 
+  then 
+    default_snapshot=$(ls -t $pre_deploy_backup_loc/*.db | head -n 1)
+    prnt "Default snapshot is : $default_snapshot"
+  else  
+    err "No default snapshot found in $pre_deploy_backup_loc" 
+fi
 
-ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-/var/lib/etcd-snapshot.db}
-IP_ADDRESS=$(hostname -i)
-ETCD_CERT=${ETCD_CERT:-$(hostname)}
 
-restored_at=$(date +%F_%H-%M-%S)
-RESTORE_PATH=${RESTORE_PATH:-/var/lib/restore-$restored_at}
+ETCD_SNAPSHOT=${ETCD_SNAPSHOT:- $default_snapshot}
+ETCD_SNAPSHOT=/var/lib/etcd-snapshot-first.db
+if [ ! -f ${ETCD_SNAPSHOT} ]; then
+    err "Snapshot ${ETCD_SNAPSHOT} does not exists!"
+    exit 1
+fi
 
-prnt  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH ok? Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
+install_etcdctl
+
+etcdctl snapshot status ${ETCD_SNAPSHOT} || exit_code=$?
+
+if (( exit_code != 0 )) ;
+  then
+    err "Status check on $ETCD_SNAPSHOT returned error! Is the snapshot corrupt?"
+    exit $exit_code
+  else
+    prnt "etcd snapshot ${ETCD_SNAPSHOT} looks good!"
+fi
+rm .suffix
+suffix=''
+suffix suffix
+token=${suffix}
+
+RESTORE_PATH=${RESTORE_PATH:-$default_restore_path}
+
+prnt  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH-$token ok? Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
 read -p "Proceed with restore? " -n 1 -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     err "\nAborted backup restore.\n"
     exit 1
 fi
-if [ ! -f ${ETCD_SNAPSHOT} ]; then
-    err "Snapshot path ${ETCD_SNAPSHOT} does not exists!"
-    exit 1
-fi
 
-etcdctl snapshot status ${ETCD_SNAPSHOT} || exit_code=$?
-if (( exit_code > 1 )) ; 
+prnt "Restoring ${ETCD_SNAPSHOT} on etcd cluster @path: ${RESTORE_PATH}"
+
+this_host=$(hostname)
+this_host_ip=$(hostname -i)
+initial_cluster=''
+etcd_servers=''
+mode=restore
+SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
+
+for svr in $etcd_servers; do
+ pair=(${svr//:/ })
+ host=${pair[0]}
+ ip=${pair[1]}
+ 
+ if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then
-    err "Status check on the snapshot returned $exit_code. Is the snapshot corrupt?"
-    exit $exit_code
+    prnt "Creating directories on localhost($ip)"
+    mkdir -p $RESTORE_PATH
   else
-    prnt "etcd snapshot ${ETCD_SNAPSHOT} looks good!"
-fi
-
-
-prnt "Restoring at location: ${RESTORE_PATH}"
-rm -rf $RESTORE_PATH
-
-ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$(hostname) --data-dir=$RESTORE_PATH --initial-advertise-peer-urls=https://${IP_ADDRESS}:2380 --initial-cluster $(hostname)=https://${IP_ADDRESS}:2380 --initial-cluster-token=${RESTORE_PATH} --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/${ETCD_CERT}.crt --key=/etc/kubernetes/pki/etcd/${ETCD_CERT}.key --endpoints=https://${IP_ADDRESS}:2379
-
-mv /etc/kubernetes/manifests/kube-apiserver.yaml .
-
-if [ -f /etc/kubernetes/manifests/etcd.yaml ];
-  then 
-    mv /etc/kubernetes/manifests/etcd.yaml .etcd.yaml
-    cp .etcd.yaml etcd.draft
-  else
-    encoded=$(basename -- "$ETCD_SNAPSHOT")
-    encoded="${encoded%.*}"
-    SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
-    cat $SNAPSHOT_DIR/$encoded.nodelete | base64 -d > etcd.draft
-fi
-
-if [ ! -f etcd.draft ]; then
- err "Unable to locate etcd.yaml in the system. Not proceeding with restore!"
- exit 1
-fi
-
-OLD_DATA_DIR=$(cat etcd.draft | grep "\-\-data-dir=")
-OLD_DATA_DIR=${OLD_DATA_DIR:17}
-sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
-
-#initial-cluster-token
-sed -i '/initial-cluster-token/d' etcd.draft
-sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.draft
-
-mv etcd.draft /etc/kubernetes/manifests/etcd.yaml
-mv kube-apiserver.yaml /etc/kubernetes/manifests/
-
-systemctl restart kubelet
-sleep 2
-prnt "Post etcd restore - checking kube-system pods..."
-rm status-report 2> /dev/null
-
-kubectl -n kube-system get pod | tee status-report
-
-status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
-i=6
-while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
-  sleep $i
-  i=$((i-2))
-  rm status-report 
-  kubectl -n kube-system get pod | tee status-report
-  status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
+    prnt "Creating directories and copying to $ip"
+    echo "rm -rf $SNAPSHOT_DIR $RESTORE_PATH; mkdir -p $SNAPSHOT_DIR $RESTORE_PATH > tmp.script"
+    . execute-script-remote.sh $ip tmp.script
+    . copy-snapshot-remote.sh $ETCD_SNAPSHOT $ip $SNAPSHOT_DIR 
+ fi
+ if [ -z $initial_cluster ];
+   then
+     initial_cluster=$host=https://$ip:2380
+     etcd_servers=https://$ip:2379
+   else
+     initial_cluster+=,$host=https://$ip:2380
+     etcd_servers+=,https://$ip:2379
+ fi
 done
 
-rm status-report
+for svr in $etcd_servers; do
+ pair=(${svr//:/ })
+ host=${pair[0]}
+ ip=${pair[1]}
+ 
+ cp etcd-restore.script $host-etcd-restore.script
+ sed -i "s|#ETCD_SNAPSHOT#|$ETCD_SNAPSHOT|g" $host-etcd-restore.script
+ sed -i "s|#RESTORE_PATH#|$RESTORE_PATH-$token|g" $host-etcd-restore.script
+ sed -i "s|#INITIAL_CLUSTER#|$initial_cluster|g" $host-etcd-restore.script
+ sed -i "s|#INITIAL_CLUSTER_TOKEN#|$token|g" $host-etcd-restore.script
+ 
+ if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
+  then
+    prnt "Executing etcd restore on localhost($ip)"
+    . $host-etcd-restore.script
+    mkdir -p $RESTORE_PATH
+  else
+    prnt "Executing etcd restore on $ip"
+   . execute-script-remote.sh $ip $host-etcd-restore.script
+ fi
+   mv $host-etcd-restore.script ./generated
+ #generate systemd files
+ . gen-systemd-config.sh $host $ip 
+
+done
+sed -i "s|#initial-cluster#|$initial_cluster|g" $gendir/*.service
+
+#TODO copy service files
+
+
+mv /etc/kubernetes/manifests/kube-apiserver.yaml .
+cp kube-apiserver.yaml $SNAPSHOT_DIR/kube-apiserver.yaml.$token
+mv /etc/kubernetes/manifests/etcd.yaml $SNAPSHOT_DIR/etcd.yaml.$token
+cp kube-apiserver.yaml kube.draft
+sed -i "s|apiserver-etcd-client|$(hostname)-client|g" kube.draft
+cp /etc/kubernetes/pki/etcd/$(hostname)-client.* /etc/kubernetes/pki/
+sed -i "s|https://127.0.0.1:2379|$etcd_servers|g" kube.draft
+mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 
 prnt "Snapshot restored"
 
