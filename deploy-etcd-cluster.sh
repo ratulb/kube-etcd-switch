@@ -28,11 +28,11 @@ to etcd servers!"
 #backup the current local installation. As long as current local k8s installtion is good we can spin off an etcd cluster based off of it.
 deploy_count=0
 
-if [ -d $pre_deploy_backup_loc ]; then
-  deploy_count=$(ls $pre_deploy_backup_loc/*.db | wc -l)
+if [ -d $default_backup_loc ]; then
+  deploy_count=$(ls $default_backup_loc/*.db | wc -l)
 fi
 ((deploy_count++))
-ETCD_SNAPSHOT=$pre_deploy_backup_loc/predeploy-snapshot#$deploy_count.db
+ETCD_SNAPSHOT=$default_backup_loc/predeploy-snapshot#$deploy_count.db
 
 echo 'y'| prompt=no ./embedded-etcd-backup.sh 
 

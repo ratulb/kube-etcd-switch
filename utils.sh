@@ -14,9 +14,8 @@ read_setup()
       "etcd_servers") export etcd_servers="$value" ;;
       "sleep_time") export sleep_time="$value" ;;
       "initial_cluster_token") export initial_cluster_token="$value" ;;
-      "data_dir") export data_dir="$value" ;;
-      "pre_deploy_backup_loc") export pre_deploy_backup_loc="$value" ;;
-      "default_restore_path") export default_restore_path="$value" ;;
+      "data_dir") export data_dir=$(echo $value | sed 's:/*$::') ;;
+      "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
       "#"*) ;;
 
     esac
@@ -79,26 +78,17 @@ if ! [ -x "$(command -v etcdctl)" ];
  fi
 }
 
-
-suffix() {
- #OLD_INIT_CLUSTER_TOKEN=$(cat etcd.yaml | grep initial-cluster-token)
- #if [ ! -z "${OLD_INIT_CLUSTER_TOKEN}"  ]; then
- #    OLD_INIT_CLUSTER_TOKEN=${OLD_INIT_CLUSTER_TOKEN:30}
- #    sed -i "s|$OLD_INIT_CLUSTER_TOKEN|restore-$restored_at|g" etcd.yaml
- #  else
- #    sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=restore-$restored_at" etcd.yaml
- #fi
- cat .suffix &> /dev/null
+gen_token() {
+ cat .token &> /dev/null
  if [ ! $? = 0 ]; then
-  token=$(date +%F_%H-%M-%S)
-  echo "suffix=$token" > .suffix
- else 
-   token=$(cat .suffix | grep suffix | cut -d'=' -f 2)
-   if [ -z "$token" ]; then
-     token=$(date +%F_%H-%M-%S)
-     echo "suffix=$token" > .suffix
+  identifier=$(date +%F_%H-%M-%S)
+  echo "token=$identifier" > .token
+ else
+   identifier=$(cat .token | grep token | cut -d'=' -f 2)
+   if [ -z "$identifier" ]; then
+     identifier=$(date +%F_%H-%M-%S)
+     echo "token=$identifier" > .token
    fi
  fi
- eval "$1=$token"
+ eval "$1=$identifier"
  }
-
