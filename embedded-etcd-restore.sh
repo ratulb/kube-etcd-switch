@@ -3,27 +3,17 @@
 
 #ETCD_SNAPSHOT=./backups/server-cert.db ETCD_CERT=server ./embedded-etcd-restore.sh 
 . utils.sh
-  
-install_etcdctl
+. checks/ca-err.sh
+. checks/api-client-cert-err.sh
 
-count=0
+latest_snapshot
+ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LATEST_SNAPSHOT}
+. checks/snapshot-exists-err.sh $ETCD_SNAPSHOT
+. checks/snapshot-valid-err.sh $ETCD_SNAPSHOT
 
-if [ -d $default_backup_loc ]; then
-  count=$(ls $default_backup_loc/*.db | wc -l)
-fi
-ETCD_CERT=server
-ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$default_backup_loc/snapshot#$count.db}
-IP_ADDRESS=$(hostname -i)
-
-count=0
-if [ -d $data_dir ]; 
-  then
-    count=$(find $data_dir/* -maxdepth 0 -type d | wc -l)
-  else
-    mkdir -p $data_dir
-fi
-
-RESTORE_PATH=${RESTORE_PATH:-$data_dir/restore#$count}
+./copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
+next_data_dir $master_ip
+RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
 
 prnt  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH. Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
 read -p "Proceed with restore? " -n 1 -r
@@ -32,35 +22,34 @@ then
     err "\nAborted backup restore.\n"
     exit 1
 fi
-if [ ! -f ${ETCD_SNAPSHOT} ]; then
-    err "Snapshot path ${ETCD_SNAPSHOT} does not exists!"
-    exit 1
-fi
 
-etcdctl snapshot status ${ETCD_SNAPSHOT} || exit_code=$?
-if (( exit_code != 0 )) ; 
-  then
-    err "Status check on the snapshot returned $exit_code. Is the snapshot corrupt?"
-    exit $exit_code
-  else
-    prnt "etcd snapshot ${ETCD_SNAPSHOT} status passed!"
-fi
+purge_restore_path $master_ip $RESTORE_PATH
 
-prnt "Restoring at location: ${RESTORE_PATH}"
-rm -rf $RESTORE_PATH
 rm .token
 token=''
 gen_token token
+prnt "Restoring at location: ${RESTORE_PATH}"
 
-ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$(hostname) --data-dir=$RESTORE_PATH --initial-advertise-peer-urls=https://${IP_ADDRESS}:2380 --initial-cluster $(hostname)=https://${IP_ADDRESS}:2380 --initial-cluster-token=${token} --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/${ETCD_CERT}.crt --key=/etc/kubernetes/pki/etcd/${ETCD_CERT}.key --endpoints=https://${IP_ADDRESS}:2379
+. execute-script-remote.sh $master_ip install-etcd.script
 
-cat vault/kube-apiserver.yaml | base64 -d >  kube.draft
-sed -i "s|host_ip|$(hostname -i)|g" kube.draft
-sed -i "s|localhost|127.0.0.1|g" kube.draft
+cp embedded-restore.cmd restore.cmd
+sed -i "s|#ETCD_SNAPSHOT#|$ETCD_SNAPSHOT|g" restore.cmd
+sed -i "s|#RESTORE_PATH#|$RESTORE_PATH|g" restore.cmd	
+sed -i "s|#TOKEN#|$token|g" restore.cmd	
 
-cat vault/etcd.yaml | base64 -d >  etcd.draft
-sed -i "s|host_ip|$(hostname -i)|g" etcd.draft
-sed -i "s|localhost|127.0.0.1|g" etcd.draft
+cat restore.cmd
+
+. execute-script-remote.sh $master_ip restore.cmd
+
+ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$master_name --data-dir=$RESTORE_PATH --initial-advertise-peer-urls=https://$master_ip:2380 --initial-cluster $master_name=https://${master_ip}:2380 --initial-cluster-token=${token} --cacert=$etcd_ca --cert=$kube_api_client_cert --key=$kube_api_client_key --endpoints=https://${master_ip}:2379
+
+exit_code=$?
+if [ $exit_code != 0 ]; then
+  err "Snapshot restore failed!"
+  exit $exit_code
+fi	
+
+cp $kube_vault/etcd.yaml etcd.draft
 OLD_DATA_DIR=$(cat etcd.draft | grep "\-\-data-dir=")
 OLD_DATA_DIR=${OLD_DATA_DIR:17}
 sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
@@ -68,9 +57,22 @@ sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
 #initial-cluster-token
 sed -i '/initial-cluster-token/d' etcd.draft
 sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=$token" etcd.draft
-systemctl stop etcd &> /dev/null
-mv etcd.draft /etc/kubernetes/manifests/etcd.yaml
-mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
+prnt "etcd draft: "
+cat etcd.draft
+
+read -p "Go ahead with final restore step? " -n 1 -r
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    err "\nAborted backup restore.\n"
+    exit 1
+fi
+
+
+./pause-api-server.sh $master_ip
+./stop-etcd-cluster.sh
+./push-etcd-changes.sh $master_ip
+./resume-api-server.sh $master_ip
+
 prnt "Post etcd restore - checking kube-system pods..."
 rm status-report 2> /dev/null
 
@@ -87,6 +89,7 @@ while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
 done
 
 rm status-report
-
+rm restore.cmd
+rm etcd.draft
 prnt "Snapshot restored"
 

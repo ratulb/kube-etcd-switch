@@ -3,7 +3,6 @@
 export usr=$(whoami)
 read_setup()
 {
-  
   etcd_ips=
   etcd_names=
   initial_cluster_token=
@@ -12,14 +11,22 @@ read_setup()
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
+      "kube_api_client_cert") export kube_api_client_cert="$value" ;;
+      "kube_api_client_key") export kube_api_client_key="$value" ;;
+      "etcd_ca") export etcd_ca="$value" ;;
+      "etcd_key") export etcd_key="$value" ;;
       "sleep_time") export sleep_time="$value" ;;
       "initial_cluster_token") export initial_cluster_token="$value" ;;
       "data_dir") export data_dir=$(echo $value | sed 's:/*$::') ;;
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
+      "k8s_master") export k8s_master="$value" ;;
       "#"*) ;;
 
     esac
   done < "setup.conf"
+  export master_name=$(echo $k8s_master | cut -d':' -f 1)
+  export master_ip=$(echo $k8s_master | cut -d':' -f 2)
+  export kube_vault=${HOME}/.kube_vault/
 }
 
 "read_setup"
@@ -92,3 +99,56 @@ gen_token() {
  fi
  eval "$1=$identifier"
  }
+
+ next_snapshot()
+ {
+  count=0
+  if [ -d $default_backup_loc ]; 
+    then
+      count=$(find $default_backup_loc/*.db -maxdepth 0 -type f | wc -l)
+    else
+    mkdir -p default_backup_loc
+  fi
+  ((count++))
+  export  NEXT_SNAPSHOT=$default_backup_loc/snapshot#$count.db
+ }
+
+latest_snapshot()
+ {
+  count=0
+  if [ -d $default_backup_loc ]; then
+    count=$(ls $default_backup_loc/*.db | wc -l)
+  fi
+  if [ $count = 0 ]; then 
+    err "No snapshot found at $default_backup_loc. No backup has been taken or store location may have changed. Please check"
+    exit 1
+  fi
+  export LATEST_SNAPSHOT=$default_backup_loc/snapshot#$count.db
+
+ }
+
+ next_data_dir()
+ {  
+    this_host_ip=$(hostname -i)
+    count=0
+    if [ $this_host_ip = $1 ]; 
+      then
+        count=$(ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir)
+      else
+	count=$(ssh $1 "ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir")
+    fi
+    export NEXT_DATA_DIR=$data_dir#$count
+ }
+
+purge_restore_path()
+ {
+    this_host_ip=$(hostname -i)
+    if [ $this_host_ip = $1 ];
+      then
+	rm -rf $2
+      else
+	sudo -u $usr ssh $1 "rm -rf $2"
+    fi
+ }
+
+

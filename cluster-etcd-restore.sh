@@ -125,5 +125,5 @@ cp /etc/kubernetes/pki/etcd/$(hostname)-client.* /etc/kubernetes/pki/
 sed -i "s|https://127.0.0.1:2379|$etcd_servers|g" kube.draft
 #cp kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 #rm /etc/kubernetes/manifests/etcd.yaml
-prnt "Snapshot spread over the etcd cluster! Readdy for launch"
+prnt "Snapshot spread over the etcd cluster! Readdy for launch!"
 

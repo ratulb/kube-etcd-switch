@@ -2,11 +2,14 @@
 #Generates the certicates for etcd servers using cfssl and ca.crt file from /etc/kubernetes/pki/etcd by default. Any ca can be used used overriding the default - as long apiserver certs can use the ca. 
 . utils.sh
 
-etcd_ca=/etc/kubernetes/pki/etcd/ca.crt
-etcd_key=/etc/kubernetes/pki/etcd/ca.key
-
-if [ ! -f $etcd_ca ] || [ ! -f $etcd_key ]; then
-    err "$etcd_ca or/and $etcd_key not present!"
+if [ ! -f $etcd_ca ] || [ ! -f $etcd_key ]; 
+  then
+    if [ ! -f $etcd_ca ]; 
+      then
+        err "$etcd_ca not present!"
+      else
+        err "$etcd_key not present!"
+    fi
     exit 1
 fi
 
@@ -15,7 +18,7 @@ for svr in $etcd_servers; do
   prnt $svr
 done
 
-echo  "Please make sure the SSH public key has been copied \
+prnt  "Please make sure the SSH public key has been copied \
 to etcd servers!"
 
 #read -p "Proceed with proceed with the external etcd deployment? " -n 1 -r
@@ -26,14 +29,7 @@ to etcd servers!"
 #fi
 
 #backup the current local installation. As long as current local k8s installtion is good we can spin off an etcd cluster based off of it.
-deploy_count=0
-
-if [ -d $default_backup_loc ]; then
-  deploy_count=$(ls $default_backup_loc/*.db | wc -l)
-fi
-((deploy_count++))
-ETCD_SNAPSHOT=$default_backup_loc/predeploy-snapshot#$deploy_count.db
-
+next_snapshot
 echo 'y'| prompt=no ./embedded-etcd-backup.sh 
 
 
@@ -60,7 +56,7 @@ for svr in $etcd_servers; do
 #Install etcd & setup cert dirs
  if [ "$this_host" = "$host" ] || [ "$this_host_ip" = "$ip" ];
   then 
-    prnt "Installing etcd on localhost($ip)"
+    prnt "Installing etcd on localhost ($ip)"
     . install-etcd.script
     . make-dirs.script
   else 

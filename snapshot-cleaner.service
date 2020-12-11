@@ -1,0 +1,4 @@
+[Unit]
+Description=Etcd snapshot cleaner
+[Service]
+ExecStart=/usr/bin/find /etc/etcd/backup/ -name "*.*" | xargs rm

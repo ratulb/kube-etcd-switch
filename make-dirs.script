@@ -1,9 +1,3 @@
 #!/usr/bin/env bash 
-mkdir -p /etc/kubernetes1/pki/etcd
-for dir in $@; do
-  if [ ! -d $dir ]; then
-    mkdir -p $dir
-  fi
-done
-
-echo "I received user data : $user_data"
+mkdir -p /etc/kubernetes/pki/etcd
+echo "Created /etc/kubernetes/pki/etcd $(hostname -i)"

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+data_dir=#data_dir#
+count=0
+if [ -d $data_dir ];
+  then
+    #count=$(find $data_dir/* -maxdepth 0 -type d | wc -l)
+    count=$(ls -l $data_dir | grep -c ^d)
+  else
+    mkdir -p $data_dir
+fi

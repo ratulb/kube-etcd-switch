@@ -1,0 +1,9 @@
+[Unit]
+Description=Clean etcd snapshot every 120s
+[Timer]
+OnBootSec=10
+OnUnitActiveSec=120
+AccuracySec=1s
+[Install]
+WantedBy=timers.target
+
