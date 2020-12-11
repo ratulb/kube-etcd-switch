@@ -137,7 +137,9 @@ latest_snapshot()
       else
 	count=$(ssh $1 "ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir")
     fi
-    export NEXT_DATA_DIR=$data_dir#$count
+    ((count++))
+    export NEXT_DATA_DIR=$data_dir/restore#$count
+    echo "Next data dir : $NEXT_DATA_DIR"
  }
 
 purge_restore_path()

@@ -15,16 +15,16 @@ ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LATEST_SNAPSHOT}
 next_data_dir $master_ip
 RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
 
-prnt  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH. Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
-read -p "Proceed with restore? " -n 1 -r
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    err "\nAborted backup restore.\n"
-    exit 1
-fi
+#prnt  "Would restore from $ETCD_SNAPSHOT at $RESTORE_PATH. Can change restore locations(from/to) by setting the ETCD_SNAPSHOT/RESTORE_PATH environment variables."
+#read -p "Proceed with restore? " -n 1 -r
+#if [[ ! $REPLY =~ ^[Yy]$ ]]
+#then
+#    err "\nAborted backup restore.\n"
+#    exit 1
+#fi
 
 purge_restore_path $master_ip $RESTORE_PATH
-
+sleep 2
 rm .token
 token=''
 gen_token token
@@ -32,6 +32,7 @@ prnt "Restoring at location: ${RESTORE_PATH}"
 
 . execute-script-remote.sh $master_ip install-etcd.script
 
+sleep 2
 cp embedded-restore.cmd restore.cmd
 sed -i "s|#ETCD_SNAPSHOT#|$ETCD_SNAPSHOT|g" restore.cmd
 sed -i "s|#RESTORE_PATH#|$RESTORE_PATH|g" restore.cmd	
@@ -40,8 +41,6 @@ sed -i "s|#TOKEN#|$token|g" restore.cmd
 cat restore.cmd
 
 . execute-script-remote.sh $master_ip restore.cmd
-
-ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT --name=$master_name --data-dir=$RESTORE_PATH --initial-advertise-peer-urls=https://$master_ip:2380 --initial-cluster $master_name=https://${master_ip}:2380 --initial-cluster-token=${token} --cacert=$etcd_ca --cert=$kube_api_client_cert --key=$kube_api_client_key --endpoints=https://${master_ip}:2379
 
 exit_code=$?
 if [ $exit_code != 0 ]; then
@@ -60,18 +59,20 @@ sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=$token" etcd.d
 prnt "etcd draft: "
 cat etcd.draft
 
-read -p "Go ahead with final restore step? " -n 1 -r
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    err "\nAborted backup restore.\n"
-    exit 1
-fi
+#read -p "Go ahead with final restore step? " -n 1 -r
+#if [[ ! $REPLY =~ ^[Yy]$ ]]
+#then
+ #   err "\nAborted backup restore.\n"
+ #   exit 1
+#fi
 
 
 ./pause-api-server.sh $master_ip
 ./stop-etcd-cluster.sh
 ./push-etcd-changes.sh $master_ip
+sleep 4
 ./resume-api-server.sh $master_ip
+sleep 2
 
 prnt "Post etcd restore - checking kube-system pods..."
 rm status-report 2> /dev/null
@@ -79,10 +80,10 @@ rm status-report 2> /dev/null
 kubectl -n kube-system get pod | tee status-report
 
 status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
-i=3
+i=10
 while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
   sleep $i
-  i=$((i-1))
+  i=$((i-2))
   rm status-report 
   kubectl -n kube-system get pod | tee status-report
   status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
