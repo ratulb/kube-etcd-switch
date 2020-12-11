@@ -11,8 +11,8 @@ read_setup()
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
-      "kube_api_client_cert") export kube_api_client_cert="$value" ;;
-      "kube_api_client_key") export kube_api_client_key="$value" ;;
+      "kube_api_etcd_client_cert") export kube_api_etcd_client_cert="$value" ;;
+      "kube_api_etcd_client_key") export kube_api_etcd_client_key="$value" ;;
       "etcd_ca") export etcd_ca="$value" ;;
       "etcd_key") export etcd_key="$value" ;;
       "sleep_time") export sleep_time="$value" ;;
@@ -111,6 +111,7 @@ gen_token() {
   fi
   ((count++))
   export  NEXT_SNAPSHOT=$default_backup_loc/snapshot#$count.db
+  echo "Next snapshot store path : $NEXT_SNAPSHOT"
  }
 
 latest_snapshot()
@@ -124,7 +125,7 @@ latest_snapshot()
     exit 1
   fi
   export LATEST_SNAPSHOT=$default_backup_loc/snapshot#$count.db
-
+  echo "Latest restored snapshot : $LATEST_SNAPSHOT"
  }
 
  next_data_dir()
@@ -135,11 +136,11 @@ latest_snapshot()
       then
         count=$(ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir)
       else
-	count=$(ssh $1 "ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir")
+	count=$(sudo -u $usr ssh $1 "ls -l $data_dir 2>/dev/null | grep -c ^d  || mkdir -p $data_dir")
     fi
     ((count++))
     export NEXT_DATA_DIR=$data_dir/restore#$count
-    echo "Next data dir : $NEXT_DATA_DIR"
+    echo "Next data dir for back restore : $NEXT_DATA_DIR"
  }
 
 purge_restore_path()
@@ -148,8 +149,10 @@ purge_restore_path()
     if [ $this_host_ip = $1 ];
       then
 	rm -rf $2
+	echo "Purged : $2 on localhost($this_host_ip)"
       else
 	sudo -u $usr ssh $1 "rm -rf $2"
+	"Purged : $2 on remote host ($1)"
     fi
  }
 

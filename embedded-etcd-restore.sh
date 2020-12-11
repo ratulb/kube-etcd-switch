@@ -3,15 +3,16 @@
 
 #ETCD_SNAPSHOT=./backups/server-cert.db ETCD_CERT=server ./embedded-etcd-restore.sh 
 . utils.sh
-. checks/ca-err.sh
-. checks/api-client-cert-err.sh
+. checks/ca-cert-exists.sh
+. checks/etcd-client-cert-exists.sh
 
 latest_snapshot
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LATEST_SNAPSHOT}
-. checks/snapshot-exists-err.sh $ETCD_SNAPSHOT
-. checks/snapshot-valid-err.sh $ETCD_SNAPSHOT
+. checks/snapshot-exists.sh $ETCD_SNAPSHOT
+. checks/snapshot-valid.sh $ETCD_SNAPSHOT
 
 ./copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
+. checks/snapshot-valid@destination.sh
 next_data_dir $master_ip
 RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
 
@@ -24,16 +25,13 @@ RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
 #fi
 
 purge_restore_path $master_ip $RESTORE_PATH
-sleep 2
 rm .token
 token=''
 gen_token token
 prnt "Restoring at location: ${RESTORE_PATH}"
 
-. execute-script-remote.sh $master_ip install-etcd.script
-
-sleep 2
 cp embedded-restore.cmd restore.cmd
+
 sed -i "s|#ETCD_SNAPSHOT#|$ETCD_SNAPSHOT|g" restore.cmd
 sed -i "s|#RESTORE_PATH#|$RESTORE_PATH|g" restore.cmd	
 sed -i "s|#TOKEN#|$token|g" restore.cmd	
@@ -49,6 +47,7 @@ if [ $exit_code != 0 ]; then
 fi	
 
 cp $kube_vault/etcd.yaml etcd.draft
+
 OLD_DATA_DIR=$(cat etcd.draft | grep "\-\-data-dir=")
 OLD_DATA_DIR=${OLD_DATA_DIR:17}
 sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
@@ -56,6 +55,7 @@ sed -i "s|$OLD_DATA_DIR|$RESTORE_PATH|g" etcd.draft
 #initial-cluster-token
 sed -i '/initial-cluster-token/d' etcd.draft
 sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=$token" etcd.draft
+
 prnt "etcd draft: "
 cat etcd.draft
 

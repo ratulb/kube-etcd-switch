@@ -5,5 +5,5 @@ if (( exit_code != 0 )) ;
     err "Status check on the snapshot $1 failed!"
     exit $exit_code
   else
-    prnt "etcd snapshot ${ETCD_SNAPSHOT} status passed!"
+    prnt "etcd snapshot $1 status passed!"
 fi
