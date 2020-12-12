@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-apt update
-apt -y upgrade
 download_url=https://github.com/cloudflare/cfssl/releases/download
 ver=1.4.1
 if  ! which cfssl &> /dev/null ; then
@@ -14,5 +12,3 @@ if  ! which cfssl &> /dev/null ; then
   curl -L ${download_url}/v${ver}/cfssl-certinfo_${ver}_linux_amd64 -o /usr/local/bin/cfssl-certinfo
   chmod +x /usr/local/bin/cfssl-certinfo
 fi
-apt install tree -y
-apt autoremove -y

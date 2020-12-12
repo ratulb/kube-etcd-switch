@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 . utils.sh
 prnt "Initializing..."
+sudo apt update
+. install-cfssl.sh
+sudo apt install tree -y
+sudo apt autoremove -y
 mkdir -p $kube_vault
 this_host_ip=$(hostname -i)
 if [ ! "$this_host_ip" = $master_ip ]; then

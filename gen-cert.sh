@@ -1,38 +1,24 @@
 #!/usr/bin/env bash
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 'hostname' 'ip'"
+  exit 1
+fi
 . utils.sh
 . checks/ca-cert-existence.sh
 
-prnt "Generating certificates for:"
-for svr in $etcd_servers; do
-  prnt $svr
-done
-
+host=$1
+ip=$2
 gendir=./generated
 mkdir -p ${gendir}
-rm -f ${gendir}/*.crt
-rm -f ${gendir}/*.key
-count=0
-for svr in $etcd_servers; do
- pair=(${svr//:/ })
- host=${pair[0]}
- ip=${pair[1]}
  
- if [ -z $host ] || [ -z $ip ];
-   then
-     err "Host or IP address is not valid - can not proceed!"
-     rm -rf $gendir
-     exit 1
- fi
+cp ./csr-template.json ${gendir}/${host}-csr.json 
+sed -i "s/#etcd-host#/${host}/g" ${gendir}/${host}-csr.json
  
- cp ./csr-template.json ${gendir}/${host}-csr.json 
- sed -i "s/#etcd-host#/${host}/g" ${gendir}/${host}-csr.json
- 
- cfssl gencert \
+cfssl gencert \
   -ca=${etcd_ca} \
   -ca-key=${etcd_key} \
   -config=ca-csr.json \
   -profile=client \
-  -hostname=${host},${ip},127.0.0.1,localhost \
   ${gendir}/${host}-csr.json | cfssljson -bare ${gendir}/${host}-client
 
  cfssl gencert \
@@ -51,9 +37,6 @@ for svr in $etcd_servers; do
   -profile=server \
   ${gendir}/${host}-csr.json | cfssljson -bare ${gendir}/${host}-server
 
- ((count++))
-done
-
 cd $gendir
 
 rm ./*.json
@@ -64,7 +47,4 @@ for file in $(ls . | grep ".pem$"); do mv "$file" "${file%.*}.crt"; done
 
 cd - &> /dev/null
 
-count=$((count*6))
-tree | grep generated -A$count
-
-
+prnt "generated certificate and key for $host($ip)"

@@ -3,6 +3,8 @@
 export usr=$(whoami)
 read_setup()
 {
+  etcd_ips=''
+  etcd_names=''
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
@@ -16,7 +18,6 @@ read_setup()
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
       "k8s_master") export k8s_master="$value" ;;
       "#"*) ;;
-
     esac
   done < "setup.conf"
 
@@ -162,7 +163,7 @@ latest_snapshot()
     else
     	this_host_ip=$(hostname -i)
     	count=0
-    	  if [ "$this_host_ip" = $1 ];
+    	  if [ "$this_host_ip" = "$1" ];
       	    then
               count=$(ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path)
         else
@@ -170,7 +171,7 @@ latest_snapshot()
     fi
     ((count++))
     export NEXT_DATA_DIR=$default_restore_path/restore#$count
-    echo "Next data dir for snapshot restore : $NEXT_DATA_DIR"
+    echo "Next data dir for snapshot restore : $NEXT_DATA_DIR($1)"
   fi
  }
 
@@ -187,3 +188,33 @@ purge_restore_path()
     fi
  }
 
+ api_server_etcd_url() {
+  _etcd_servers=''
+  for ip in $etcd_ips; do
+    if [ -z $_etcd_servers ]; 
+      then
+         _etcd_servers=https://$ip
+      else
+        _etcd_servers+=,https://$ip
+    fi
+  done
+  export API_SERVER_ETCD_URL=$_etcd_servers
+  prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
+
+}
+etcd_initial_cluster(){
+  _initial_cluster=''
+  for svr in $etcd_servers; do
+    pair=(${svr//:/ })
+    host=${pair[0]}
+    ip=${pair[1]}
+    if [ -z $_initial_cluster ];
+      then
+         _initial_cluster=$host=https://$ip:2380
+      else
+        _initial_cluster+=,$host=https://$ip:2380
+    fi
+  done
+  export ETCD_INITIAL_CLUSTER='--initial-cluster '$_initial_cluster
+  prnt "etcd initial cluster: $ETCD_INITIAL_CLUSTER"
+}

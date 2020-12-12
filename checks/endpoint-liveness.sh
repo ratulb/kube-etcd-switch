@@ -5,7 +5,7 @@ if [ $# = 0 ];
     ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=$kube_api_etcd_client_cert \
       --key=$kube_api_etcd_client_key \
-      --endpoints=$master_ip:2379 member list &> /dev/null
+      --endpoints=10.148.15.198:2379 member list
     if [ ! $? = 0 ]; then
       echo -e "\e[31metcd endpoint list failed - can not proceed!\e[0m"
       exit 1
@@ -20,7 +20,7 @@ if [ $# = 0 ];
       ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=$kube_api_etcd_client_cert \
       --key=$kube_api_etcd_client_key \
-      --endpoints=$master_ip:2379 member list &> /dev/null
+      --endpoints=10.148.15.198:2379 member list
       
       status=$?
       if [ "$status" = 0 ]; then
