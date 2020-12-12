@@ -17,7 +17,7 @@ next_data_dir $master_ip
 RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
 purge_restore_path $master_ip $RESTORE_PATH
 
-rm .token
+rm .token &> /dev/null
 token=''
 gen_token token
 

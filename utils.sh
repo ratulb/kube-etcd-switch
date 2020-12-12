@@ -162,7 +162,7 @@ latest_snapshot()
     else
     	this_host_ip=$(hostname -i)
     	count=0
-    	  if [ $this_host_ip = $1 ];
+    	  if [ "$this_host_ip" = $1 ];
       	    then
               count=$(ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path)
         else
@@ -177,7 +177,7 @@ latest_snapshot()
 purge_restore_path()
  {
     this_host_ip=$(hostname -i)
-    if [ $this_host_ip = $1 ];
+    if [ "$this_host_ip" = $1 ];
       then
 	rm -rf $2
 	echo "Purged : $2 on localhost($this_host_ip)"

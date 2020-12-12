@@ -5,7 +5,7 @@
     exit 1
   fi
   this_host_ip=$(hostname -i)
-  if [ "$1" = $this_host_ip ];
+  if [ "$this_host_ip" = $1 ];
     then
       cp etcd.draft /etc/kubernetes/manifests/etcd.yaml
    else
