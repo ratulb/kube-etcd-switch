@@ -7,7 +7,7 @@ sudo -u $usr scp -q -o StrictHostKeyChecking=no -o \
         $kube_vault/
 prnt "Storing etcd and api server yamls @$kube_vault"
 sudo -u $usr chown -R $(id -u):$(id -g) /etc/kubernetes/pki/ 
-if [ $(hostname -i) = $1 ]; then
+if [ "$(hostname -i)" = $1 ]; then
   exit 0
 fi
 
