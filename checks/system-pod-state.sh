@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-prnt "Checking kube-system pods..."
+echo "Checking kube-system pods..."
 rm status-report 2> /dev/null
 kubectl -n kube-system get pod | tee status-report
 status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)
@@ -8,7 +8,8 @@ i=$1
 secs=$2
 while [ "$i" -gt 0 ] && [[ ! $status =~ "Running" ]] ; do
   sleep $secs
-  i=$((i-1))
+  #TODO
+  #i=$((i-1))
   rm status-report
   kubectl -n kube-system get pod | tee status-report
   status=$(cat status-report |  awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash 
 cd ..
 i=10
+#TODO
 while [ "$i" -gt 0 ]; do
-  echo 'y' | ./embedded-etcd-backup.sh 
-  sleep 3
+  #echo 'y' | ./backup-embedded-etcd.sh 
+  ./destructive-script.sh
+  sleep 10
   i=$((i-1))
-  echo 'y' | ./embedded-etcd-restore.sh
+  echo 'y' | ./restore-embedded-etcd.sh
 done
 cd -

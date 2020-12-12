@@ -29,3 +29,5 @@
     exit $exit_code
   fi
   prnt "Snapshot($snapshot_file) has been applied @$data_dir in machine($machine_ip) successfully"
+  #TODO
+  rm restore.script

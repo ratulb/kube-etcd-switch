@@ -41,6 +41,5 @@ if [ $# = 0 ];
 	echo -e "\e[31metcd endpoint list failed after $1 tries.Can not proceed!\e[0m"
 	exit 1
     fi
-
 fi
 
