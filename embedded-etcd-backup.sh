@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 . utils.sh
-. checks/ca-cert-exists.sh
-. checks/etcd-client-cert-exists.sh
-. checks/endpoint-accessible.sh
+. checks/ca-cert-existence.sh
+. checks/client-cert-existence.sh
+. checks/endpoint-liveness.sh
 
 next_snapshot
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$NEXT_SNAPSHOT}
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
 mkdir -p $SNAPSHOT_DIR
 
-. checks/usr-ask.sh
+. checks/user-confirmation
 
 ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 	--cert=$kube_api_etcd_client_cert \
