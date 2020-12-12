@@ -10,7 +10,7 @@ ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$NEXT_SNAPSHOT}
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
 mkdir -p $SNAPSHOT_DIR
 
-. checks/user-confirmation
+. checks/user-confirmation.sh
 
 ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 	--cert=$kube_api_etcd_client_cert \
