@@ -98,7 +98,6 @@ if ! [ -x "$(command -v etcdctl)" ];
    then
      prnt "Installing etcdctl"
      ETCD_VER="3.4.14"
-     ETCD_VER=${1:-$ETCD_VER}
      echo $ETCD_VER
      DOWNLOAD_URL=https://github.com/etcd-io/etcd/releases/download
      prnt "Downloading etcd $ETCD_VER from $DOWNLOAD_URL"
@@ -109,7 +108,7 @@ if ! [ -x "$(command -v etcdctl)" ];
     mv /tmp/etcd-download-loc/etcdctl /usr/local/bin
     etcdctl version
   else
-    prnt "etcdctl already installed" %> /dev/null
+    prnt "etcdctl already installed"
  fi
 }
 
