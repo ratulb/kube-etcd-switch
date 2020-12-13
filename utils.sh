@@ -151,7 +151,7 @@ latest_snapshot()
     count=$(ls $default_backup_loc/*.db | wc -l)
   fi
   if [ $count = 0 ]; then
-    err "No snapshot found at $default_backup_loc. No backup has been taken or store location may have changed. Please check"
+    err "No snapshot found at $default_backup_loc. No backup has been taken or store location may have changed.Please check."
     exit 1
   fi
   export LATEST_SNAPSHOT=$default_backup_loc/snapshot#$count.db

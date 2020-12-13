@@ -24,7 +24,7 @@ gen_token token
 prnt "Restoring at location: ${RESTORE_PATH}"
 
 ./snapshot-restore.sh $ETCD_SNAPSHOT $RESTORE_PATH $token $master_ip
-#TODO
+#TODO what?
 echo 'y'|./etcd-draft-review.sh $RESTORE_PATH $token
 ./pause-api-server.sh $master_ip
 ./stop-etcd-cluster.sh
