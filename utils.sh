@@ -17,6 +17,7 @@ read_setup()
       "default_restore_path") export default_restore_path=$(echo $value | sed 's:/*$::') ;;
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
       "k8s_master") export k8s_master="$value" ;;
+      "etcd_version") export etcd_version="$value" ;;
       "#"*) ;;
     esac
   done < "setup.conf"
@@ -48,6 +49,8 @@ read_setup()
         etcd_names+=' '$etcd_name
     fi
   done
+  export etcd_ips=$etcd_ips
+  export etcd_names=$etcd_names
 }
 
 "read_setup"
@@ -97,7 +100,7 @@ install_etcdctl()
 if ! [ -x "$(command -v etcdctl)" ];
    then
      prnt "Installing etcdctl"
-     ETCD_VER="3.4.14"
+     ETCD_VER=$etcd_version
      echo $ETCD_VER
      DOWNLOAD_URL=https://github.com/etcd-io/etcd/releases/download
      prnt "Downloading etcd $ETCD_VER from $DOWNLOAD_URL"
@@ -201,19 +204,33 @@ purge_restore_path()
   prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
 
 }
+
 etcd_initial_cluster(){
-  _initial_cluster=''
+  initial_cluster=''
   for svr in $etcd_servers; do
     pair=(${svr//:/ })
     host=${pair[0]}
     ip=${pair[1]}
-    if [ -z $_initial_cluster ];
+    if [ -z $initial_cluster ];
       then
-         _initial_cluster=$host=https://$ip:2380
+         initial_cluster=$host=https://$ip:2380
       else
-        _initial_cluster+=,$host=https://$ip:2380
+        initial_cluster+=,$host=https://$ip:2380
     fi
   done
-  export ETCD_INITIAL_CLUSTER='--initial-cluster '$_initial_cluster
+  export ETCD_INITIAL_CLUSTER=$initial_cluster
   prnt "etcd initial cluster: $ETCD_INITIAL_CLUSTER"
+}
+
+dress_up_script(){
+  case $1 in
+	prepare-etcd-dirs.script)
+		cp prepare-etcd-dirs.script prepare-etcd-dirs.script.tmp
+                sed -i "3ibackup_loc=$default_backup_loc" prepare-etcd-dirs.script.tmp
+                sed -i "4irestore_path=$default_restore_path" prepare-etcd-dirs.script.tmp
+		;;
+	*)
+		echo "Not handled yet!"
+		;;
+  esac
 }

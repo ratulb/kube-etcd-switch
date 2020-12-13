@@ -19,4 +19,7 @@ else
    cp /etc/kubernetes/manifests/etcd.yaml $kube_vault/etcd.yaml
    cp /etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault/kube-apiserver.yaml
 fi
+#house keeping stuff that would be needed
+sed -i "s/#ETCD_VER#/$etcd_version/g" install-etcd.script
+mkdir -p $default_backup_loc
 install_etcdctl

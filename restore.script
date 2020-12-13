@@ -1,0 +1,20 @@
+#!/usr/bin/env bash 
+
+ETCD_SNAPSHOT=/etc/backup/snapshot#2.db
+RESTORE_PATH=/var/lib/etcd-restore/restore#1
+TOKEN=2020-12-13_02-21-12
+IP_ADDRESS=$(hostname -i)
+IP_ADDRESS=$(echo $IP_ADDRESS | cut -d' ' -f1)
+ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT \
+  --name=$(hostname) \
+  --data-dir=$RESTORE_PATH \
+  --initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
+  --initial-cluster $(hostname)=https://$IP_ADDRESS:2380 \
+  --initial-cluster-token=${TOKEN} \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/apiserver-etcd-client.crt \
+  --key=/etc/kubernetes/pki/apiserver-etcd-client.key \
+  --endpoints=https://$IP_ADDRESS:2379
+
+
+
