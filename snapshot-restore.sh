@@ -10,18 +10,15 @@
   machine_ip=$4
   this_host_ip=$(hostname -i)
 
-  cp etcd-restore.script restore.script
-  sed -i "s|#ETCD_SNAPSHOT#|$snapshot_file|g" restore.script
-  sed -i "s|#RESTORE_PATH#|$data_dir|g" restore.script
-  sed -i "s|#TOKEN#|$initial_cluster_token|g" restore.script
+  dress_up_script etcd-restore.script $snapshot_file $data_dir $initial_cluster_token
 
-  cat restore.script
+  cat etcd-restore.script.tmp
   
   if [ "$this_host_ip" = $machine_ip ]; 
     then
-      ./restore.script
+      ./etcd-restore.script.tmp
     else
-      . execute-script-remote.sh $machine_ip restore.script
+      . execute-script-remote.sh $machine_ip etcd-restore.script.tmp
   fi
   exit_code=$?
   if [ $exit_code != 0 ]; then
@@ -29,5 +26,5 @@
     exit $exit_code
   fi
   prnt "Snapshot($snapshot_file) has been applied @$data_dir in machine($machine_ip) successfully"
-  #TODO
-  #rm restore.script
+  #TODO Should we remove etcd-restore.script.tmp
+  #rm etcd-restore.script.tmp

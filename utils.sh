@@ -229,8 +229,14 @@ dress_up_script(){
                 sed -i "3ibackup_loc=$default_backup_loc" prepare-etcd-dirs.script.tmp
                 sed -i "4irestore_path=$default_restore_path" prepare-etcd-dirs.script.tmp
 		;;
+	etcd-restore.script)
+		cp etcd-restore.script etcd-restore.script.tmp
+  		sed -i "s|#ETCD_SNAPSHOT#|$2|g" etcd-restore.script.tmp
+  		sed -i "s|#RESTORE_PATH#|$3|g" etcd-restore.script.tmp
+ 		sed -i "s|#TOKEN#|$4|g" etcd-restore.script.tmp
+                ;;
 	*)
-		echo "Not handled yet!"
-		;;
+	echo "Not handled yet!"
+	;;
   esac
 }

@@ -28,7 +28,7 @@ prnt "Restoring at location: ${RESTORE_PATH}"
 echo 'y'|./etcd-draft-review.sh $RESTORE_PATH $token
 ./pause-api-server.sh $master_ip
 ./stop-etcd-cluster.sh
-./reconfig-etcd.sh $master_ip
+./apply-etcd-draft.sh $master_ip
 ./checks/endpoint-liveness.sh 5 3
 ./resume-api-server.sh $master_ip
 ./checks/system-pod-state.sh 5 3

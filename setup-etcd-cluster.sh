@@ -44,4 +44,4 @@ if  [ "$ip" = $this_host_ip ];
 
 done
 
-prnt "Etcd cluster has been setup successfully!!!"
+prnt "Etcd cluster has been setup successfully on $etcd_ips!!!"
