@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
+. checks/cluster-state.sh
+echo "current state $CLUSTER_STATE"
 
 . utils.sh
 . checks/ca-cert-existence.sh
 . checks/client-cert-existence.sh
 
-latest_snapshot
+last_snapshot
 
-ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LATEST_SNAPSHOT}
+ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LAST_SNAPSHOT}
 . checks/snapshot-existence.sh $ETCD_SNAPSHOT
 . checks/snapshot-validity.sh $ETCD_SNAPSHOT
-
-./copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
+. copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
 . checks/snapshot-validity@destination.sh $master_ip $ETCD_SNAPSHOT 
 
 next_data_dir $master_ip
@@ -23,12 +24,12 @@ gen_token token
 
 prnt "Restoring at location: ${RESTORE_PATH}"
 
-./snapshot-restore.sh $ETCD_SNAPSHOT $RESTORE_PATH $token $master_ip
+. restore-snapshot.sh $ETCD_SNAPSHOT $RESTORE_PATH $token $master_ip
 #TODO what?
 echo 'y'|./etcd-draft-review.sh $RESTORE_PATH $token
-./pause-api-server.sh $master_ip
-./stop-etcd-cluster.sh
-./apply-etcd-draft.sh $master_ip
+. pause-api-server.sh $master_ip
+. stop-etcd-cluster.sh
+. apply-etcd-draft.sh $master_ip
 ./checks/endpoint-liveness.sh 5 3
-./resume-api-server.sh $master_ip
+. resume-api-server.sh $master_ip
 ./checks/system-pod-state.sh 5 3

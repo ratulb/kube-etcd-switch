@@ -26,10 +26,10 @@ if  [ "$ip" = $this_host_ip ];
     . install-etcd.script
     . prepare-etcd-dirs.script $default_backup_loc $default_restore_path
 
-    prnt "Copying certs and systemd files on local machine $ip"
+    prnt "Copying certs on local machine $ip"
     
     cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
-    cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
+    #cp $gendir/$host-etcd.service /etc/systemd/system/etcd.service
 
   else
     prnt "Installing etcd/creating default directories on host($ip)"
@@ -39,7 +39,7 @@ if  [ "$ip" = $this_host_ip ];
     . execute-script-remote.sh $ip prepare-etcd-dirs.sh.tmp 
 
     prnt "Copying certs and systemd files on remotemachine $ip"
-    . copy-certs-and-systemd-files.sh $host $ip
+    . copy-certs.sh $host $ip
  fi 
 
 done

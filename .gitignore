@@ -1,2 +1,5 @@
 .token
 generated/
+**/*.tmp
+*.draft
+0
