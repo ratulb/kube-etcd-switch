@@ -38,7 +38,7 @@ if  [ "$ip" = $this_host_ip ];
     dress_up_script prepare-etcd-dirs.script
     . execute-script-remote.sh $ip prepare-etcd-dirs.sh.tmp 
 
-    prnt "Copying certs and systemd files on remotemachine $ip"
+    prnt "Copying certs to remote machine $ip"
     . copy-certs.sh $host $ip
  fi 
 
