@@ -11,7 +11,6 @@ etcd_initial_cluster
 cluster_token=${initial_cluster_token:-$token}
 initial_cluster=${ETCD_INITIAL_CLUSTER}
 
-
 for svr in $etcd_servers; do
 
   pair=(${svr//:/ })
