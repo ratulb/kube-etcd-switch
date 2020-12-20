@@ -8,7 +8,6 @@
   data_dir=$2
   initial_cluster_token=$3
   machine_ip=$4
-  this_host_ip=$(hostname -i)
 
   dress_up_script etcd-restore.script $snapshot_file $data_dir $initial_cluster_token
 

@@ -7,7 +7,6 @@ fi
 data_dir=$1
 token=$2
 machine_ip=$3
-this_host_ip=$(hostname -i)
 
 cp $kube_vault/etcd.yaml etcd.draft
 old_data_dir=$(cat etcd.draft | grep "\-\-data-dir=")

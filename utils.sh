@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#set -e
 export usr=$(whoami)
 read_setup() {
   etcd_ips=''
@@ -25,7 +24,8 @@ read_setup() {
     echo -e "\e[31m No k8s_master found in setup.conf!!!\e[0m"
     exit 1
   fi
-
+  
+  export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
   export master_name=$(echo $k8s_master | cut -d':' -f 1)
   export master_ip=$(echo $k8s_master | cut -d':' -f 2)
   export kube_vault=${HOME}/.kube_vault/
@@ -147,7 +147,6 @@ last_snapshot() {
 }
 
 next_data_dir() {
-  this_host_ip=$(hostname -i)
   count=0
   if [ "$this_host_ip" = $1 ]; then
     count=$(ls -l $default_restore_path 2>/dev/null | grep -c ^d || mkdir -p $default_restore_path)
@@ -171,7 +170,6 @@ next_data_dir() {
 }
 
 purge_restore_path() {
-  this_host_ip=$(hostname -i)
   if [ "$this_host_ip" = $1 ]; then
     rm -rf $2
     echo "Purged : $2 on localhost($this_host_ip)"

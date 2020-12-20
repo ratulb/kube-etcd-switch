@@ -16,8 +16,6 @@ token=''
 gen_token token
 etcd_initial_cluster
 
-this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
-
 for ip in $etcd_ips; do
   . copy-snapshot.sh $ETCD_SNAPSHOT $ip
   . checks/snapshot-validity@destination.sh $ip $ETCD_SNAPSHOT
@@ -35,7 +33,7 @@ done
 
 prnt "Done snapshot restore accross etcd cluster. Will switch api server to external etcd cluster..."
 
-. swtitch-to-external-cluster.sh 
+. swtitch-to-etcd-cluster.sh 
 
 . checks/endpoint-liveness-cluster.sh
 

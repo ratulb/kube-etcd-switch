@@ -4,7 +4,6 @@
     echo "Usage: $0 kube-apiserver's IP" >&2
     exit 1
   fi
-  this_host_ip=$(hostname -i)
   if [ "$this_host_ip" = $1 ];
     then
       cp etcd.draft /etc/kubernetes/manifests/etcd.yaml

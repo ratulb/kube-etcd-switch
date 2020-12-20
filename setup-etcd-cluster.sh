@@ -8,7 +8,6 @@
 
 . gen-certs.sh
 
-this_host_ip=$(echo $(hostname -i) | cut -d' ' -f1)
 this_host=$(hostname)
 
 for svr in $etcd_servers; do

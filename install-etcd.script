@@ -1,6 +1,6 @@
 #!/usr/bin/env bash 
 apt update
-ETCD_VER=3.4.14
+ETCD_VER=#ETCD_VER#
 if  ! which etcd &> /dev/null;
   then
     echo -e "\e[1;42m Installing etcd $ETCD_VER.\e[0m"
@@ -12,6 +12,6 @@ if  ! which etcd &> /dev/null;
     mv /tmp/etcd-download-loc/etcdctl /usr/local/bin
     mv /tmp/etcd-download-loc/etcd /usr/local/bin
   else
-    echo -e "\e[1;42m Etcd already installed.\e[0m"
+    echo -e "\e[1;42mEtcd already installed.\e[0m"
 fi
 etcd --version || etcd version

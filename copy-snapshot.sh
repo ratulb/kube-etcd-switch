@@ -5,7 +5,6 @@ if [ "$#" -ne 2 ]; then
   err "Usage: $0 'snapshot file' 'machine to copy to'" >&2
   exit 1
 fi
-this_host_ip=$(hostname -i)
 SNAPSHOT=$1
 SNAPSHOT_DIR=${SNAPSHOT%/*}
 
