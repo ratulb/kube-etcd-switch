@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "Checking kube-system pods..."
+prnt "Checking kube-system pods..."
 rm status-report 2>/dev/null
 kubectl -n kube-system get pod | tee status-report
 status=$(cat status-report | awk '{if(NR>1)print}' | awk '{print $3}' | sort -u)

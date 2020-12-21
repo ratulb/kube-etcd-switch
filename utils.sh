@@ -28,7 +28,8 @@ read_setup() {
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
   export master_name=$(echo $k8s_master | cut -d':' -f 1)
   export master_ip=$(echo $k8s_master | cut -d':' -f 2)
-  export kube_vault=${HOME}/.kube_vault/
+  export kube_vault=${HOME}/.kube_vault
+  export gendir=$(pwd)/generated/
 
   if [ -z "$etcd_servers" ]; then
     echo -e "\e[31m No etcd servers found in setup.conf!!!\e[0m"
@@ -122,9 +123,9 @@ gen_token() {
 next_snapshot() {
   count=0
   if [ -d $default_backup_loc ]; then
-    count=$(find $default_backup_loc/*.db -maxdepth 0 -type f | wc -l)
+    count=$(find $default_backup_loc/*.db -maxdepth 0 -type f 2> /dev/null | wc -l)
   else
-    mkdir -p default_backup_loc
+    mkdir -p $default_backup_loc
   fi
   ((count++))
   export NEXT_SNAPSHOT=$default_backup_loc/snapshot#$count.db

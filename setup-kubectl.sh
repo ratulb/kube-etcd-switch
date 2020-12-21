@@ -20,4 +20,3 @@ sed -i '/source <(kubectl completion bash)/d' ~/.bashrc
 echo 'source <(kubectl completion bash)' >>~/.bashrc
 source ~/.bashrc
 
-kubectl get pod

@@ -25,7 +25,6 @@ else
     if [ "$status" = 0 ]; then
       echo -e "\e[1;42metcd endpoint is up.\e[0m"
       rm -f etcd.draft
-      exit 0
     fi
     echo -e "\e[31metcd endpoint is not up - would again after $secs seconds!\e[0m"
     sleep $secs
@@ -34,9 +33,7 @@ else
   if [ "$status" = 0 ]; then
     echo -e "\e[1;42metcd endpoint is up.\e[0m"
     rm -f etcd.draft
-    exit 0
   else
     echo -e "\e[31metcd endpoint list failed after $1 tries.Can not proceed!\e[0m"
-    exit 1
   fi
 fi

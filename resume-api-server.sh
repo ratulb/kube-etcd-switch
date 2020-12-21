@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 . utils.sh
-  if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 kube-apiserver's IP" >&2
-    exit 1
-  fi
-  if [ "$this_host_ip" = $1 ];
+  if [ "$this_host_ip" = $master_ip ];
     then
       mv $kube_vault/paused-kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml
    else
-sudo -u $usr ssh $1 "mv $kube_vault/paused-kube-apiserver.yaml \
+sudo -u $usr ssh $master_ip "mv $kube_vault/paused-kube-apiserver.yaml \
 	/etc/kubernetes/manifests/kube-apiserver.yaml"
   fi
  
