@@ -24,7 +24,7 @@ read_setup() {
     echo -e "\e[31m No k8s_master found in setup.conf!!!\e[0m"
     exit 1
   fi
-  
+
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
   export master_name=$(echo $k8s_master | cut -d':' -f 1)
   export master_ip=$(echo $k8s_master | cut -d':' -f 2)
@@ -127,7 +127,7 @@ next_snapshot() {
     search="$1-*.db"
   fi
   if [ -d $default_backup_loc ]; then
-    count=$(find $default_backup_loc/$search -maxdepth 0 -type f 2> /dev/null | wc -l)
+    count=$(find $default_backup_loc/$search -maxdepth 0 -type f 2>/dev/null | wc -l)
   else
     mkdir -p $default_backup_loc
   fi
@@ -149,12 +149,12 @@ last_snapshot() {
       last_snapshot=$(readlink -f $last_snapshot)
       export LAST_SNAPSHOT=$last_snapshot
       prnt "Last snapshot is: $last_snapshot"
+    else
+      if [ -z $1 ]; then
+        err "No last snapshot found in $default_backup_loc"
       else
-	if [ -z $1 ]; then 
-	err "No last snapshot found in $default_backup_loc"
-        else 
-	err "No last $1 snapshot found in $default_backup_loc"
-      fi	
+        err "No last $1 snapshot found in $default_backup_loc"
+      fi
     fi
 
   else
@@ -162,21 +162,22 @@ last_snapshot() {
   fi
 }
 
-last_archive() {
+last_archived_state() {
+  unset LAST_ARCHIVE
   last_archive=''
   search="*.tar.gz"
   if [ ! -z $1 ]; then
     search="$1#*.tar.gz"
   fi
-    count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
-    if [ $count -gt 0 ] ; then
-      last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
-      last_archive=$(readlink -f $last_archive)
-      export LAST_ARCHIVE=$last_archive
-      prnt "Last archive is: $LAST_ARCHIVE"
-      else
-       err "No archived migration found in $kube_vault/migration-archive"
-    fi
+  count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
+  if [ $count -gt 0 ]; then
+    last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
+    last_archive=$(readlink -f $last_archive)
+    export LAST_ARCHIVE=$last_archive
+    prnt "Last archive is: $LAST_ARCHIVE"
+  else
+    err "No archived migration found in $kube_vault/migration-archive"
+  fi
 }
 
 next_data_dir() {

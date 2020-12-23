@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 . utils.sh
 
-if [ ! -z $1 ]; then
-  last_archive $1
-else
-  last_archive
+if [ -z $1 ]; then
+  err "Usage $0 1|2(1-embedded-etcd,2-external-etcd)"
+  exit 1
 fi
+last_archived_state $1
 
 ARCHIVED_FILE=${USER_ARCHIVE:-$LAST_ARCHIVE}
 echo "Archived file : $ARCHIVED_FILE"

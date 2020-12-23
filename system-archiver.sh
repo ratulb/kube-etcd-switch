@@ -33,4 +33,4 @@ cd $kube_vault && echo $state_desc > system-snaps/state.txt
 tar cfz $cluster_state#$token.tar.gz system-snaps
 mv $cluster_state#$token.tar.gz migration-archive && rm -rf $kube_vault/system-snaps/* && rm -rf $kube_vault/system-snap/*
 
-
+cd -
