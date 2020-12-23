@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+kube_vault=#kube_vault#
+archive=$kube_vault/system-snap/system-snap.tar.gz
+f1=etcd.yaml
+f2=kube-apiserver.yaml
+f3=etcd.service
+
+if [ -f $archive ]; then
+  tar tvf $archive | grep -E "$f1|$f2|$f3"
+  if [ "$?" = 0 ]; then
+    tar xvf $archive -C /
+  fi
+  rm $archive
+fi

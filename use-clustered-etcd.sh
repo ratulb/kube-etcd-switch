@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-
+#!/usr/bin/env bash
+. checks/cluster-state.sh
+. checks/confirm-use-clustered-etcd.sh
 . utils.sh
 
-last_snapshot
+last_snapshot external-etcd
 
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LAST_SNAPSHOT}
 . checks/snapshot-existence.sh $ETCD_SNAPSHOT
 . checks/snapshot-validity.sh $ETCD_SNAPSHOT
+
+. checks/confirm-action.sh "Proceed with move" "move"
 
 rm -f .token
 

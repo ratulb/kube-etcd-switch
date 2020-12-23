@@ -122,29 +122,61 @@ gen_token() {
 
 next_snapshot() {
   count=0
+  search="*.db"
+  if [ ! -z $1 ]; then
+    search="$1-*.db"
+  fi
   if [ -d $default_backup_loc ]; then
-    count=$(find $default_backup_loc/*.db -maxdepth 0 -type f 2> /dev/null | wc -l)
+    count=$(find $default_backup_loc/$search -maxdepth 0 -type f 2> /dev/null | wc -l)
   else
     mkdir -p $default_backup_loc
   fi
   ((count++))
-  export NEXT_SNAPSHOT=$default_backup_loc/snapshot#$count.db
+  export NEXT_SNAPSHOT=$default_backup_loc/$1-snapshot#$count.db
   echo "Next snapshot store path : $NEXT_SNAPSHOT"
 }
 
 last_snapshot() {
-  last_snapshot=''
-  if [ -d "$default_backup_loc" ]; then
-    count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
-    if [ $count ] >0; then
-      last_snapshot=$(ls -t $default_backup_loc/*.db | head -n 1)
+  unset LAST_SNAPSHOT
+  search="*.db"
+  if [ ! -z $1 ]; then
+    search="$1-*.db"
+  fi
+  if [ -d $default_backup_loc ]; then
+    count=$(find $default_backup_loc -maxdepth 1 -type f -name "$search" | wc -l)
+    if [ $count -gt 0 ]; then
+      last_snapshot=$(ls -t $default_backup_loc/$search | head -n 1)
       last_snapshot=$(readlink -f $last_snapshot)
       export LAST_SNAPSHOT=$last_snapshot
       prnt "Last snapshot is: $last_snapshot"
+      else
+	if [ -z $1 ]; then 
+	err "No last snapshot found in $default_backup_loc"
+        else 
+	err "No last $1 snapshot found in $default_backup_loc"
+      fi	
     fi
+
   else
-    err "No snapshot found in $default_backup_loc"
+    err "Defaullt backup directory $default_backup_loc does not exist!"
   fi
+}
+
+last_archive() {
+  last_archive=''
+  search="*.tar.gz"
+  if [ ! -z $1 ]; then
+    search="$1#*.tar.gz"
+  fi
+    count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
+    if [ $count -gt 0 ] ; then
+      last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
+      last_archive=$(readlink -f $last_archive)
+      export LAST_ARCHIVE=$last_archive
+      prnt "Last archive is: $LAST_ARCHIVE"
+      else
+       err "No archived migration found in $kube_vault/migration-archive"
+    fi
 }
 
 next_data_dir() {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 
-cp $HOME/.kube_vault/kube-apiserver.yaml kube.draft
+cat $kube_vault/kube-apiserver.yaml.encoded | base64 -d >  kube.draft
 
 api_server_etcd_url
 
@@ -13,10 +13,10 @@ token=''
 gen_token token
 
 if [ "$this_host_ip" = $master_ip ]; then
-  mv /etc/kubernetes/manifests/etcd.yaml $HOME/.kube_vault/$token-etcd.yaml
+  mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/$token-etcd.yaml
   mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 else
-  sudo -u $usr ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip "mv /etc/kubernetes/manifests/etcd.yaml $HOME/.kube_vault/$token-etcd.yaml"
+  sudo -u $usr ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip "mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/$token-etcd.yaml"
   sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
     $(pwd)/kube.draft $master_ip:/etc/systemd/system/kube-apiserver.yaml

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+kube_vault=#kube_vault#
+
+rm -rf $kube_vault/system-snap/
+mkdir -p $kube_vault/system-snap/etc/kubernetes/manifests/
+mkdir -p $kube_vault/system-snap/etc/systemd/system/
+
+if [ -f /etc/kubernetes/manifests/etcd.yaml ]; then 
+  cp /etc/kubernetes/manifests/etcd.yaml $kube_vault/system-snap/etc/kubernetes/manifests/
+fi
+
+if [ -f /etc/kubernetes/manifests/kube-apiserver.yaml ]; then
+  cp /etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault/system-snap/etc/kubernetes/manifests/
+fi
+
+if [ -f /etc/systemd/system/etcd.service ]; then
+  cp /etc/systemd/system/etcd.service $kube_vault/system-snap/etc/systemd/system/
+fi  
+
+cd $kube_vault/system-snap/
+
+tar cfz system-snap.tar.gz etc
+
+cd -
+

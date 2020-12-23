@@ -2,6 +2,7 @@
 . utils.sh
 
 nodes=$(kubectl get nodes -o wide --no-headers | awk '{print $6}' | tr '\n' ' ')
+nodes=${nodes:-$*}
 
 if [ -z "$nodes" ]; then
   err "Cluster node probe failed - Can not proceed."

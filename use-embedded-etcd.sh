@@ -5,17 +5,13 @@
 . checks/ca-cert-existence.sh
 . checks/client-cert-existence.sh
 
-last_snapshot
+last_snapshot embedded-etcd
 
 ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$LAST_SNAPSHOT}
 . checks/snapshot-existence.sh $ETCD_SNAPSHOT
 . checks/snapshot-validity.sh $ETCD_SNAPSHOT
 
-read -p "Confirm move?" -n 1 -r
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  err "\nAborted move.\n"
-  exit 1
-fi
+. checks/confirm-action.sh "Proceed with move" "move"
 
 . copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
 . checks/snapshot-validity@destination.sh $master_ip $ETCD_SNAPSHOT 

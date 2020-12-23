@@ -8,7 +8,7 @@ data_dir=$1
 token=$2
 machine_ip=$3
 
-cp $kube_vault/etcd.yaml etcd.draft
+cat $kube_vault/etcd.yaml.encoded | base64 -d >  etcd.draft
 old_data_dir=$(cat etcd.draft | grep "\-\-data-dir=")
 old_data_dir=${old_data_dir:17}
 sed -i "s|$old_data_dir|$data_dir|g" etcd.draft
