@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
-prnt "Initializing..."
+prnt "kube-etcd-switch initializing..."
 
 sudo apt update
 . install-cfssl.sh

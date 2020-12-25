@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-. checks/cluster-state.sh
-. checks/confirm-use-clustered-etcd.sh
 . utils.sh
 
-if [ "$cluster_state" -ne 2 ]; then #We are at some other state than running external etcd cluster
-  ./checks/last-good-state.sh 2
-  if [ "$?" -eq 0 ]; then
-    #Last good state exists - try resurrecting it
-    echo "resurrecting"
+. checks/cluster-state.sh
+. checks/confirm-use-clustered-etcd.sh
+
+if [ ! "$cluster_state" = 'external-up' ]; then #We are at some other state than running external etcd cluster
+  if last_good_state_exists external-up; then
+    . stop-embedded-etcd.sh
+    . unarchive-system-states.sh 'external-up'
+    . start-external-etcds.sh
+    . checks/system-pod-state.sh 5 3
   else
-    echo "Would restore snapshot - because last good state is not there"
-    . etcd-snapshot-migrator.sh
+    prnt "Would restore snapshot - because last good state is not present!@@@@@@@@@@@@@"
+    . restore-snapshot-on-etcd-nodes.sh
   fi
 else
-  echo "We are already in external etcd - would restore last snapshot"
+  prnt "We are already in external etcd - would restore last snapshot##############"
+  . restore-snapshot-on-etcd-nodes.sh
 fi

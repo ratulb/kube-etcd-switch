@@ -2,7 +2,7 @@
 . utils.sh
 
 case $cluster_state in
-  1)
+  emup)
     if [ $# = 0 ] || [ $1 != '--force' -a $1 != '-f' ]; then
       err "Already on embedded etcd! $0 --force|-f will restore last snapshot."
       exit 1
@@ -10,11 +10,11 @@ case $cluster_state in
       prnt "Will restore last snapshot."
     fi
     ;;
-  2)
+  exup)
     prnt "Moving from external to embedded etcd."
-    . resurrect-embedded-etcd.sh
+    #. resurrect-embedded-etcd.sh
     ;;
-  3 | 4 | *)
+  emdown | ukdown | *)
     prnt "Will restore last snapshot."
     ;;
 esac

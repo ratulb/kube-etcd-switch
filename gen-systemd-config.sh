@@ -7,10 +7,6 @@ if [ "$#" -ne 2 ]; then
   exit 1
 fi
 
-gendir=./generated
-mkdir -p $gendir
-$gendir/$1-etcd.service
-
 token=''
 gen_token token
 

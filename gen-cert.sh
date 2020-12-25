@@ -8,8 +8,6 @@ fi
 
 host=$1
 ip=$2
-gendir=./generated
-mkdir -p ${gendir}
  
 cp ./csr-template.json ${gendir}/${host}-csr.json 
 sed -i "s/#etcd-host#/${host}/g" ${gendir}/${host}-csr.json

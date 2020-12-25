@@ -29,7 +29,7 @@ read_setup() {
   export master_name=$(echo $k8s_master | cut -d':' -f 1)
   export master_ip=$(echo $k8s_master | cut -d':' -f 2)
   export kube_vault=${HOME}/.kube_vault
-  export gendir=$(pwd)/generated/
+  export gendir=$(pwd)/generated
 
   if [ -z "$etcd_servers" ]; then
     echo -e "\e[31m No etcd servers found in setup.conf!!!\e[0m"
@@ -106,15 +106,15 @@ install_etcdctl() {
 }
 
 gen_token() {
-  cat .token &>/dev/null
+  cat $gendir/.token &>/dev/null
   if [ ! $? = 0 ]; then
     identifier=$(date +%F_%H-%M-%S)
-    echo "token=$identifier" >.token
+    echo "token=$identifier" >$gendir/.token
   else
-    identifier=$(cat .token | grep token | cut -d'=' -f 2)
+    identifier=$(cat $gendir/.token | grep token | cut -d'=' -f 2)
     if [ -z "$identifier" ]; then
       identifier=$(date +%F_%H-%M-%S)
-      echo "token=$identifier" >.token
+      echo "token=$identifier" >$gendir/.token
     fi
   fi
   eval "$1=$identifier"
@@ -178,6 +178,11 @@ last_archived_state() {
   else
     err "No archived migration found in $kube_vault/migration-archive"
   fi
+}
+
+last_good_state_exists() {
+  last_archived_state $1
+  [ -f "$LAST_ARCHIVE" ]
 }
 
 next_data_dir() {

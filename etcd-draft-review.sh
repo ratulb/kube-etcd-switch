@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 . utils.sh
 if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 'etcd data directory(empty)' 'intial cluster token'"
+  echo "Usage: $0 'etcd data directory' 'intial cluster token'"
   exit 1
 fi
 data_dir=$1
 token=$2
-machine_ip=$3
 
 cat $kube_vault/etcd.yaml.encoded | base64 -d >  etcd.draft
 old_data_dir=$(cat etcd.draft | grep "\-\-data-dir=")

@@ -7,7 +7,7 @@
   --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt \
   --advertise-client-urls=https://#etcd-ip#:2379 \
   --cert-file=/etc/kubernetes/pki/etcd/#etcd-host#-server.crt \
-  --client-cert-auth=false \
+  --client-cert-auth=true \
   --initial-cluster-token=#initial-cluster-token# \
   --data-dir=#data-dir# \
   --initial-advertise-peer-urls=https://#etcd-ip#:2380 \
@@ -18,7 +18,7 @@
   --listen-peer-urls=https://#etcd-ip#:2380 \
   --name=#etcd-host# \
   --peer-cert-file=/etc/kubernetes/pki/etcd/#etcd-host#-peer.crt \
-  --peer-client-cert-auth=false \
+  --peer-client-cert-auth=true \
   --peer-key-file=/etc/kubernetes/pki/etcd/#etcd-host#-peer.key \
   --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt \
   --snapshot-count=10000

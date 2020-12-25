@@ -3,7 +3,6 @@
 
 debug=yes
 . checks/cluster-state.sh
-state_desc=${state_desc:-$1}
 
 token=''
 gen_token token
@@ -15,7 +14,6 @@ fi
 
 mkdir -p $kube_vault/system-snaps
 mkdir -p $kube_vault/migration-archive
-
 for ip in $server_ips; do
   if [ "$ip" = "$this_host_ip" ]; then
     . archive.script
@@ -33,4 +31,6 @@ cd $kube_vault && echo $state_desc > system-snaps/state.txt
 tar cfz $cluster_state#$token.tar.gz system-snaps
 mv $cluster_state#$token.tar.gz migration-archive && rm -rf $kube_vault/system-snaps/* && rm -rf $kube_vault/system-snap/*
 
-cd -
+archived_file=$(basename $cluster_state#$token.tar.gz)
+debug "Archive created: $archived_file"
+cd - &> /dev/null

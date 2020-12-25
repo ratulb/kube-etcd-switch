@@ -7,8 +7,6 @@ for svr in $etcd_servers; do
   prnt $svr
 done
 
-gendir=./generated
-mkdir -p ${gendir}
 rm -f ${gendir}/*.crt
 rm -f ${gendir}/*.key
 count=0

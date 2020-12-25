@@ -13,22 +13,14 @@ token=''
 gen_token token
 
 if [ "$this_host_ip" = $master_ip ]; then
-  mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/$token-etcd.yaml
   mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 else
-  sudo -u $usr ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip "mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/$token-etcd.yaml"
   sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
-    $(pwd)/kube.draft $master_ip:/etc/systemd/system/kube-apiserver.yaml
+    kube.draft $master_ip:/etc/systemd/system/kube-apiserver.yaml
 
 fi
+. stop-embedded-etcd.sh
+. start-external-etcds.sh
 
-for ip in $etcd_ips; do
-  if [ "$this_host_ip" = $ip ]; then
-    . start-etcd.script
-  else
-    . execute-script-remote.sh $ip start-etcd.script
-  fi
-done
 
-prnt "Started cluster etcd servers!"

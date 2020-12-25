@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
 
-gendir=./generated
-mkdir -p ${gendir}
 rm -f ${gendir}/*.service
 token=''
 gen_token token
