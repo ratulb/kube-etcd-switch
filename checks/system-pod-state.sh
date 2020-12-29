@@ -15,4 +15,4 @@ while [ "$i" > 0 ] && [[ ! "$status" = "Running" ]]; do
   kubectl -n kube-system get pod | tee status-report
   status=$(cat status-report | awk '{if(NR>1)print}' | awk '{print $3}' | sort -u | tr "\n" " "| xargs)
 done
-#rm status-report
+rm -f status-report

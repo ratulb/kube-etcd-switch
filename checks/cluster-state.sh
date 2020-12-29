@@ -2,8 +2,11 @@
 . utils.sh
 unset cluster_state
 unset cluster_desc
-
-kubectl cluster-info --request-timeout "5s"
+if [ ! -z "$debug" ]; then
+  kubectl cluster-info --request-timeout "5s"
+else
+  kubectl cluster-info --request-timeout "5s" &>/dev/null
+fi
 
 cluster_up=$?
 

@@ -3,3 +3,4 @@ generated/
 **/*.tmp
 *.draft
 0
+cs.sh
