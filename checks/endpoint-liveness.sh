@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-. utils.sh 
+. utils.sh
 if [ $# = 0 ]; then
   ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=$kube_api_etcd_client_cert \
@@ -9,7 +9,7 @@ if [ $# = 0 ]; then
     echo -e "\e[31metcd endpoint list failed - can not proceed!\e[0m"
     exit 1
   fi
-  echo -e "\e[1;42metcd endpoint is up.\e[0m"
+  prnt "etcd endpoint is up."
   rm -f etcd.draft
 else
   i=$1
@@ -22,18 +22,19 @@ else
       --endpoints=$master_ip:2379 member list
 
     status=$?
-    if [ "$status" = 0 ]; then
-      echo -e "\e[1;42metcd endpoint is up.\e[0m"
+    if [ "$status" -eq 0 ]; then
+      prnt "etcd endpoint is up."
       rm -f etcd.draft
+    else
+      err "etcd endpoint is not up yet - would again after $secs seconds!"
+      sleep $secs
+      i=$((i - 1))
     fi
-    echo -e "\e[31metcd endpoint is not up - would again after $secs seconds!\e[0m"
-    sleep $secs
-    i=$((i - 1))
   done
-  if [ "$status" = 0 ]; then
-    echo -e "\e[1;42metcd endpoint is up.\e[0m"
+  if [ "$status" -eq 0 ]; then
+    prnt "etcd endpoint is up now."
     rm -f etcd.draft
   else
-    echo -e "\e[31metcd endpoint list failed after $1 tries.Can not proceed!\e[0m"
+    err "etcd endpoint list failed after $1 tries."
   fi
 fi

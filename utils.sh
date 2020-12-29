@@ -55,12 +55,12 @@ read_setup() {
 "read_setup"
 
 prnt() {
-  echo -e "\e[1;42m$1\e[0m"
+  echo -e $"\e[01;32m$1\e[0m"
 }
 
 debug() {
   if [ ! -z "$debug" ]; then
-    echo -e "\e[1;42m$1\e[0m"
+    err "$1"	  
   fi
 }
 
@@ -77,7 +77,7 @@ ask() {
 
 #Whatever is the default sleep_time
 sleep_few_secs() {
-  prnt "Sleeping few secs..."
+  prnt "Waiting few secs..."
   sleep $sleep_time
 }
 
@@ -162,27 +162,138 @@ last_snapshot() {
   fi
 }
 
-last_archived_state() {
-  unset LAST_ARCHIVE
+list_snapshots() {
+  count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
+  if [ $count -gt 0 ]; then
+    prnt "Snapshots"
+    find $default_backup_loc -maxdepth 1 -type f -name *.db | xargs -n1 basename | cut -d '.' -f 1 | sort
+  else
+    err "No snapshotfound."
+  fi
+}
+
+delete_snapshots() {
+  case $1 in
+    '')
+      err "Delete snapshot - no parameters supplied!"
+      ;;
+    -a | --all)
+      count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
+      if [ $count -gt 0 ]; then
+        rm $default_backup_loc/*.db
+        prnt "Deleted $count snaspshots"
+      else
+        err "No snapshot delete"
+      fi
+      ;;
+    *)
+      deleted=''
+      not_deleted=''
+      for f in "$@"; do
+        if [ -f $default_backup_loc/$f.db ]; then
+          rm $default_backup_loc/$f.db
+          if [ -z "$deleted" ]; then
+            deleted=$f
+          else
+            deleted="$deleted $f"
+          fi
+        else
+          if [ -z "$not_deleted" ]; then
+            not_deleted=$f
+          else
+            not_deleted="$not_deleted $f"
+          fi
+        fi
+      done
+      if [ ! -z "$deleted" ]; then
+        prnt "Deleted $deleted"
+      fi
+      if [ ! -z "$not_deleted" ]; then
+        err "Not deleted $not_deleted because not found."
+      fi
+      ;;
+  esac
+}
+
+last_saved_state() {
+  unset LAST_SAVE
   last_archive=''
   search="*.tar.gz"
-  if [ ! -z $1 ]; then
-    search="$1#*.tar.gz"
+  if [ ! -z "$1" ]; then
+    search="$1*.tar.gz"
   fi
   count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
   if [ $count -gt 0 ]; then
     last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
     last_archive=$(readlink -f $last_archive)
-    export LAST_ARCHIVE=$last_archive
-    prnt "Last archive is: $LAST_ARCHIVE"
+    export LAST_SAVE=$last_archive
+    debug "Last saved state is: $LAST_SAVE"
   else
-    err "No archived migration found in $kube_vault/migration-archive"
+    if [ -z "$1" ]; then
+      debug "No saved state found in $kube_vault/migration-archive"
+    else
+      debug "Saved state $1 not found in $kube_vault/migration-archive"
+    fi
   fi
 }
 
-last_good_state_exists() {
-  last_archived_state $1
-  [ -f "$LAST_ARCHIVE" ]
+list_saved_states() {
+  count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
+  if [ $count -gt 0 ]; then
+    prnt "Last good states"
+    #find $kube_vault/migration-archive -maxdepth 1 -type f -name *.tar.gz | xargs -n1 basename | cut -d '.' -f 1 | sort
+   ls -lat $kube_vault/migration-archive/*.tar.gz | awk '{print $9}' | xargs -n1 basename | cut -d '.' -f 1
+  else
+    err "No last good state found."
+  fi
+}
+
+delete_saved_states() {
+  case $1 in
+    '')
+      err "No parameters supplied!"
+      ;;
+    -a | --all)
+      count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
+      if [ $count -gt 0 ]; then
+        rm $kube_vault/migration-archive/*.tar.gz
+        prnt "Deleted $count saved states"
+      else
+        err "No saved state to delete"
+      fi
+      ;;
+    *)
+      deleted=''
+      not_deleted=''
+      for f in "$@"; do
+        if [ -f $kube_vault/migration-archive/$f.tar.gz ]; then
+          rm $kube_vault/migration-archive/$f.tar.gz
+          if [ -z "$deleted" ]; then
+            deleted=$f
+          else
+            deleted="$deleted $f"
+          fi
+        else
+          if [ -z "$not_deleted" ]; then
+            not_deleted=$f
+          else
+            not_deleted="$not_deleted $f"
+          fi
+        fi
+      done
+      if [ ! -z "$deleted" ]; then
+        prnt "Deleted $deleted"
+      fi
+      if [ ! -z "$not_deleted" ]; then
+        err "Not deleted $not_deleted because not found."
+      fi
+      ;;
+  esac
+}
+
+saved_state_exists() {
+  last_saved_state $1
+  [ -f "$LAST_SAVE" ]
 }
 
 next_data_dir() {
@@ -229,7 +340,6 @@ api_server_etcd_url() {
   done
   export API_SERVER_ETCD_URL=$_etcd_servers
   prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
-
 }
 
 etcd_initial_cluster() {

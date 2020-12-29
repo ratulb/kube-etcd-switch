@@ -6,13 +6,16 @@
 . checks/confirm-action.sh "Proceed with move" "move"
 #. checks/cluster-state.sh
 #Save good state if the cluster is up
+token=''
+gen_token token
+
 if [ "$cluster_state" = 'embedded-up' ] || [ "$cluster_state" = 'external-up' ]; then
- . archive-system-states.sh 
+ . save-state.sh $token
 fi
 
 rm $gendir/.token &>/dev/null
-token=''
-gen_token token
+#token=''
+#gen_token token
 
 . gen-systemd-configs.sh
 

@@ -9,7 +9,7 @@ fi
 
 chosen_snapshot=${ETCD_SNAPSHOT:-$LAST_SNAPSHOT}
 if [ ! -f "$chosen_snapshot" ]; then
-  err "$0 - snapshot($chosen_snapshot) does not exists!"
+  err "$0 - snapshot does not exists!"
   exit 1
 fi
 

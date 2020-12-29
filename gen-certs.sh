@@ -10,10 +10,12 @@ done
 rm -f ${gendir}/*.crt
 rm -f ${gendir}/*.key
 count=0
-for svr in $etcd_servers; do
- pair=(${svr//:/ })
- host=${pair[0]}
- ip=${pair[1]}
+#for svr in $etcd_servers; do
+for host in "${!mappings[@]}"
+ #pair=(${svr//:/ })
+ #host=${pair[0]}
+ #ip=${pair[1]}
+ ip=${mappings[${host}]}
  
  if [ -z $host ] || [ -z $ip ];
    then

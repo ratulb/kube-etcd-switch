@@ -3,14 +3,15 @@
 . utils.sh
 . checks/ca-cert-existence.sh
 . checks/client-cert-existence.sh
-. checks/endpoint-liveness.sh
+. checks/endpoint-liveness.sh 1 1
 . checks/cluster-state.sh
-if [ "$cluster_state" = 'embedded-up' ]; then
-  next_snapshot embedded-etcd
-else
-  next_snapshot external-etcd
-fi
-ETCD_SNAPSHOT=${ETCD_SNAPSHOT:-$NEXT_SNAPSHOT}
+
+snapshot_name=$1
+snapshot_name=${snapshot_name:-$cluster_state}
+
+next_snapshot $snapshot_name
+
+ETCD_SNAPSHOT=$NEXT_SNAPSHOT
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
 mkdir -p $SNAPSHOT_DIR
 

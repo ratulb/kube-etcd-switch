@@ -5,9 +5,11 @@
 . checks/confirm-action.sh "Proceed with move" "move"
 . checks/cluster-state.sh
 
-#Save the system state - if currently up - will use prev token if exists
+rm $gendir/.token &>/dev/null
+token=''
+gen_token token
 if [ "$cluster_state" = 'external-up' ] || [ "$cluster_state" = 'embedded-up' ]; then
-  . archive-system-states.sh
+  . save-state.sh $token
 fi
 
 . copy-snapshot.sh $ETCD_SNAPSHOT $master_ip
@@ -15,10 +17,6 @@ fi
 
 next_data_dir $master_ip
 RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
-
-rm $gendir/.token &>/dev/null
-token=''
-gen_token token
 
 prnt "Restoring at location: ${RESTORE_PATH}"
 
