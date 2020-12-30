@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
   exit 1
 fi
 
-debug=yes . checks/cluster-state.sh
+. checks/cluster-state.sh
 if [ "$cluster_state" != 'embedded-up' -a "$cluster_state" != 'external-up' ]; then
   err "Cluster state is $cluster_state. Declining request."
   exit 1
@@ -30,7 +30,7 @@ for ip in $server_ips; do
     . execute-script-remote.sh $ip archive.script
     sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
       $ip:/$kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
-    sudo -u $usr ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout=5" $ip "rm -rf /$kube_vault/system-snap/*"
+    . execute-command-remote.sh $ip "rm -rf /$kube_vault/system-snap/*"
   fi
 done
 

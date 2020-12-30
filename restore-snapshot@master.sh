@@ -17,7 +17,6 @@ if [ "$cluster_state" = 'external-up' ] || [ "$cluster_state" = 'embedded-up' ];
   . save-state.sh $token
 fi
 
-
 . copy-snapshot.sh $etcd_snapshot $master_ip
 . checks/snapshot-validity@destination.sh $master_ip $etcd_snapshot
 

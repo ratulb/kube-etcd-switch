@@ -8,7 +8,8 @@ fi
 . checks/snapshot-validity.sh
 . checks/cluster-state.sh
 etcd_snapshot=$1
-prnt "Restoring $etcd_snapshot for external etcd."
+prnt "Restoring $(basename $etcd_snapshot) for external etcd."
+debug "Restoring $etcd_snapshot for external etcd."
 
 rm $gendir/.token &>/dev/null
 token=''

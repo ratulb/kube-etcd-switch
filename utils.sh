@@ -133,7 +133,8 @@ next_snapshot() {
   fi
   ((count++))
   export NEXT_SNAPSHOT=$default_backup_loc/$1-snapshot#$count.db
-  echo "Next snapshot store path : $NEXT_SNAPSHOT"
+  debug "Next snapshot store path : $NEXT_SNAPSHOT"
+  prnt "Next snapshot name: $(basename $NEXT_SNAPSHOT)"
 }
 
 last_snapshot() {
@@ -148,17 +149,17 @@ last_snapshot() {
       last_snapshot=$(ls -t $default_backup_loc/$search | head -n 1)
       last_snapshot=$(readlink -f $last_snapshot)
       export LAST_SNAPSHOT=$last_snapshot
-      prnt "Last snapshot is: $last_snapshot"
+      debug "Last snapshot is: $last_snapshot"
     else
       if [ -z $1 ]; then
-        err "No last snapshot found in $default_backup_loc"
+        debug "No last snapshot found in $default_backup_loc"
       else
-        err "No last $1 snapshot found in $default_backup_loc"
+        debug "No last $1 snapshot found in $default_backup_loc"
       fi
     fi
 
   else
-    err "Defaullt backup directory $default_backup_loc does not exist!"
+    debug "Defaullt backup directory $default_backup_loc does not exist!"
   fi
 }
 
@@ -296,6 +297,11 @@ saved_state_exists() {
   [ -f "$LAST_SAVE" ]
 }
 
+saved_snapshot_exists() {
+  last_snapshot $1
+  [ -f "$LAST_SNAPSHOT" ]
+}
+
 next_data_dir() {
   count=0
   if [ "$this_host_ip" = $1 ]; then
@@ -308,7 +314,7 @@ next_data_dir() {
   else
     count=$(sudo -u $usr ssh $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
     if [ $count ] >0 && sudo -u $usr ssh $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
-      sudo -u $usr ssh $1 ls -l $default_restore_path | grep ^d >list.txt
+      . execute-command-remote.sh  $1 "ls -l $default_restore_path | grep ^d >list.txt"
       cat list.txt | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
@@ -316,17 +322,8 @@ next_data_dir() {
   ((count++))
   rm -f list.txt sum.txt
   export NEXT_DATA_DIR=$default_restore_path/restore#$count
-  echo "Next data dir for snapshot restore : $NEXT_DATA_DIR($1)"
-}
-
-purge_restore_path() {
-  if [ "$this_host_ip" = $1 ]; then
-    rm -rf $2
-    echo "Purged : $2 on localhost($this_host_ip)"
-  else
-    sudo -u $usr ssh $1 "rm -rf $2"
-    "Purged : $2 on remote host ($1)"
-  fi
+  prnt "Next data dir for snapshot restore : $(basename $NEXT_DATA_DIR)($1)"
+  debug "Next data dir for snapshot restore : $NEXT_DATA_DIR($1)"
 }
 
 api_server_etcd_url() {

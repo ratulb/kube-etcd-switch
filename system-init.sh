@@ -8,8 +8,8 @@ sudo apt install tree -y
 sudo apt autoremove -y
 
 sed -i "s/#ETCD_VER#/$etcd_version/g" install-etcd.script
-sed -i "s|#kube_vault#|$kube_vault|g" archive.script 
-sed -i "s|#kube_vault#|$kube_vault|g" unarchive.script 
+sed -i "s|#kube_vault#|$kube_vault|g" archive.script
+sed -i "s|#kube_vault#|$kube_vault|g" unarchive.script
 
 sudo mkdir -p $kube_vault/migration-archive
 sudo mkdir -p $default_backup_loc
@@ -40,9 +40,13 @@ if [ ! "$this_host_ip" = $master_ip ]; then
     sudo -u $usr scp -q -o StrictHostKeyChecking=no -o \
       UserKnownHostsFile=/dev/null \
       $master_ip:/etc/kubernetes/manifests/{etcd.yaml,kube-apiserver.yaml} $kube_vault
-    cat $kube_vault/etcd.yaml | base64 > $kube_vault/etcd.yaml.encoded
+
+    [ -s $kube_vault/etcd.yaml] || echo -e "\e[31metcd.yaml is empty!!!\e[0m" && exit 1
+    [ -s $kube_vault/kube-apiserver.yaml ] || echo -e "\e[31mkube-apiserver.yaml is empty!!!\e[0m" && exit 1
+
+    cat $kube_vault/etcd.yaml | base64 >$kube_vault/etcd.yaml.encoded
     rm $kube_vault/etcd.yaml
-    cat $kube_vault/kube-apiserver.yaml | base64 > $kube_vault/kube-apiserver.yaml.encoded
+    cat $kube_vault/kube-apiserver.yaml | base64 >$kube_vault/kube-apiserver.yaml.encoded
     rm $kube_vault/kube-apiserver.yaml
   fi
 
@@ -52,8 +56,10 @@ if [ ! "$this_host_ip" = $master_ip ]; then
   prnt "Installing etcd on $master_ip"
   . execute-script-remote.sh $master_ip install-etcd.script
 else
-  cat /etc/kubernetes/manifests/etcd.yaml | base64 > $kube_vault/etcd.yaml.encoded
-  cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 > $kube_vault/kube-apiserver.yaml.encoded
+  [ -s /etc/kubernetes/manifests/etcd.yaml ] || echo -e "\e[31metcd.yaml is empty!!!\e[0m" && exit 1
+  [ -s /etc/kubernetes/manifests/kube-apiserver.yaml ] || echo -e "\e[31mkube-apiserver.yaml is empty!!!\e[0m" && exit 1
+  cat /etc/kubernetes/manifests/etcd.yaml | base64 >$kube_vault/etcd.yaml.encoded
+  cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >$kube_vault/kube-apiserver.yaml.encoded
 fi
 
 kubectl -n kube-system get pod && prnt "\nkubectl has been setup" || "Some problem occured!"

@@ -28,6 +28,6 @@ for svr in $etcd_servers; do
 
   cd - &> /dev/null
 
-  prnt "generated systemd service config file $gendir/$ip-etcd.service"
+  debug "generated systemd service config file $gendir/$ip-etcd.service"
 
 done

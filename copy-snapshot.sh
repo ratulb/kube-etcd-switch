@@ -11,10 +11,9 @@ SNAPSHOT_DIR=${SNAPSHOT%/*}
 if [ "$this_host_ip" = $2 ]; then
   prnt "Not copying snapshot to localhost."
 else
-  prnt "Creating snapshot directory $SNAPSHOT_DIR @host($2)"
-  sudo -u $usr ssh -o "StrictHostKeyChecking no" \
-    -o "ConnectTimeout=5" $2 "mkdir -p $SNAPSHOT_DIR"
-  prnt "Copying snapshot $SNAPSHOT to host($2)"
+  debug "Creating snapshot directory $SNAPSHOT_DIR @host($2)"
+  . execute-command-remote.sh $2 "mkdir -p $SNAPSHOT_DIR"
+  prnt "Copying snapshot $(basename $SNAPSHOT) to host($2)"
   sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null $1 $2:$SNAPSHOT_DIR
 fi
