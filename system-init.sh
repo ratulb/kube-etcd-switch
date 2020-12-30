@@ -41,13 +41,20 @@ if [ ! "$this_host_ip" = $master_ip ]; then
       UserKnownHostsFile=/dev/null \
       $master_ip:/etc/kubernetes/manifests/{etcd.yaml,kube-apiserver.yaml} $kube_vault
 
-    [ -s $kube_vault/etcd.yaml] || echo -e "\e[31metcd.yaml is empty!!!\e[0m" && exit 1
-    [ -s $kube_vault/kube-apiserver.yaml ] || echo -e "\e[31mkube-apiserver.yaml is empty!!!\e[0m" && exit 1
-
-    cat $kube_vault/etcd.yaml | base64 >$kube_vault/etcd.yaml.encoded
-    rm $kube_vault/etcd.yaml
-    cat $kube_vault/kube-apiserver.yaml | base64 >$kube_vault/kube-apiserver.yaml.encoded
-    rm $kube_vault/kube-apiserver.yaml
+    if [ -s -s "$kube_vault"/etcd.yaml ]; then
+      cat /etc/kubernetes/manifests/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
+      rm "$kube_vault"/etcd.yaml
+    else
+      echo -e "\e[31metcd.yaml is empty or does not exist!!!\e[0m"
+      exit 1
+    fi
+    if [ -s "$kube_vault"/kube-apiserver.yaml ]; then
+      cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
+      rm "$kube_vault"/kube-apiserver.yaml
+    else
+      echo -e "\e[31mkube-apiserver.yaml is empty or does not exist!!!\e[0m"
+      exit 1
+    fi
   fi
 
   prnt "Setting up kubectl on $this_host_ip"
@@ -56,10 +63,18 @@ if [ ! "$this_host_ip" = $master_ip ]; then
   prnt "Installing etcd on $master_ip"
   . execute-script-remote.sh $master_ip install-etcd.script
 else
-  [ -s /etc/kubernetes/manifests/etcd.yaml ] || echo -e "\e[31metcd.yaml is empty!!!\e[0m" && exit 1
-  [ -s /etc/kubernetes/manifests/kube-apiserver.yaml ] || echo -e "\e[31mkube-apiserver.yaml is empty!!!\e[0m" && exit 1
-  cat /etc/kubernetes/manifests/etcd.yaml | base64 >$kube_vault/etcd.yaml.encoded
-  cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >$kube_vault/kube-apiserver.yaml.encoded
+  if [ -s /etc/kubernetes/manifests/etcd.yaml ]; then
+    cat /etc/kubernetes/manifests/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
+  else
+    echo -e "\e[31metcd.yaml is empty or does not exist!!!\e[0m"
+    exit 1
+  fi
+  if [ -s /etc/kubernetes/manifests/kube-apiserver.yaml ]; then
+    cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
+  else
+    echo -e "\e[31mkube-apiserver.yaml is empty or does not exist!!!\e[0m"
+    exit 1
+  fi
 fi
 
 kubectl -n kube-system get pod && prnt "\nkubectl has been setup" || "Some problem occured!"

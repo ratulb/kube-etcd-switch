@@ -14,11 +14,9 @@ debug "Restoring $etcd_snapshot for external etcd."
 rm $gendir/.token &>/dev/null
 token=''
 gen_token token
-
 if [ "$cluster_state" = 'embedded-up' ] || [ "$cluster_state" = 'external-up' ]; then
  . save-state.sh $token
 fi
-
 . gen-systemd-configs.sh
 
 etcd_initial_cluster
@@ -26,7 +24,7 @@ etcd_initial_cluster=$ETCD_INITIAL_CLUSTER
 for ip in $etcd_ips; do
   . copy-snapshot.sh $etcd_snapshot $ip
   . checks/snapshot-validity@destination.sh $ip $etcd_snapshot
-  if [ $this_host_ip = $ip ]; then
+  if [ "$this_host_ip" = $ip ]; then
     cp $gendir/$ip-etcd.service /etc/systemd/system/etcd.service
   else
     . copy-systemd-config.sh $ip
@@ -39,6 +37,6 @@ done
 
 prnt "Restored snapshot accross etcd cluster. Will switch api server to external etcd cluster."
 
-. swtitch-to-etcd-cluster.sh
-. checks/endpoint-liveness-cluster.sh
+. switch-to-etcd-cluster.sh
+. checks/endpoint-liveness-cluster.sh 5 3
 . checks/system-pod-state.sh 5 3

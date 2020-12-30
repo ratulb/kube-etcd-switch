@@ -9,8 +9,7 @@ last_saved_state $1
 
 SAVED_FILE="$LAST_SAVE"
 if [ ! -f "$SAVED_FILE" ]; then
-  err "File not found - Can not proceed!"
-  #exit 1
+  err "Saved state not found - Can not proceed!"
   return 1
 fi
 

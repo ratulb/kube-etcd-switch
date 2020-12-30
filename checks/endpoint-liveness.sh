@@ -32,7 +32,8 @@ else
     fi
   done
   if [ "$status" -eq 0 ]; then
-    prnt "etcd endpoint is up now."
+    echo ""
+    #prnt "etcd endpoint is up now."
     rm -f etcd.draft
   else
     err "etcd endpoint list failed after $1 tries."

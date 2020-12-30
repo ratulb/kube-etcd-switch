@@ -23,7 +23,7 @@ else
   i=$1
   secs=$2
   status=1
-  while [ "$i" -gt 0 ] && [[ ! "$status" = 0 ]]; do
+  while [ "$i" -ge 0 ] && [[ ! "$status" = 0 ]]; do
     if [ -z "$debug" ]; then
       ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
         --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
@@ -47,7 +47,8 @@ else
     fi
   done
   if [ "$status" = 0 ]; then
-    echo -e "\e[1;42metcd endpoint is up now.\e[0m"
+    echo ""
+    #echo -e "\e[1;42metcd endpoint is up now.\e[0m"
   else
     echo -e "\e[31metcd endpoint list failed after $1 tries.\e[0m"
     exit 1

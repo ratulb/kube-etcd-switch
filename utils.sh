@@ -176,7 +176,7 @@ list_snapshots() {
 delete_snapshots() {
   case $1 in
     '')
-      err "Delete snapshot - no parameters supplied!"
+      err "Delete snapshot - None selected!"
       ;;
     -a | --all)
       count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)

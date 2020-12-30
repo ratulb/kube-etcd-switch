@@ -14,12 +14,14 @@ stateActions+=(['System pods states']='pod-state')
 stateActions+=(['Current cluster state']='cluster-state')
 stateActions+=(['Restart kubernetes runtime']='restart-runtime')
 stateActions+=(['Refresh view']='refresh-view')
+stateActions+=(['Snapshot view']='snapshot-view')
+stateActions+=(['Cluster view']='cluster-view')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
 select option in "${!stateActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 11 -o "$REPLY" -lt 1 ]; then
-    err "Invalid snapshot!"
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
+    err "Invalid selection!"
   else
     case "${stateActions[$option]}" in
       list)
@@ -33,7 +35,7 @@ select option in "${!stateActions[@]}"; do
       delete)
         if saved_state_exists; then
           PS3="Deleting states - choose option: "
-          delete_options=(All Some Done)
+          delete_options=(All Some Back)
           select delete_option in "${delete_options[@]}"; do
             case "$delete_option" in
               All)
@@ -45,7 +47,6 @@ select option in "${!stateActions[@]}"; do
                 echo "Type in file names - blank line to complete"
                 rm -f /tmp/state_deletions.tmp
                 while read line; do
-                  # break if the line is empty
                   [ -z "$line" ] && break
                   echo "$line" >>/tmp/state_deletions.tmp
                 done
@@ -54,7 +55,7 @@ select option in "${!stateActions[@]}"; do
                 rm -f /tmp/state_deletions.tmp
                 break
                 ;;
-              Done)
+              Back)
                 break
                 ;;
             esac
@@ -62,14 +63,18 @@ select option in "${!stateActions[@]}"; do
           echo ""
           PS3=$'\e[01;32mSelection: \e[0m'
         else
-          prnt "No saaved state to delete"
+          err "No saaved state to delete"
         fi
         ;;
       restore)
-        prnt "Restoring state - enter state name: "
-        read fileName
-        if saved_state_exists $fileName; then
-          . restore-state.sh $fileName
+        if saved_state_exists; then
+          prnt "Restoring state - enter state name: "
+          read fileName
+          if saved_state_exists $fileName; then
+            . restore-state.sh $fileName
+          fi
+        else
+          err "No saved state to restore!"
         fi
         ;;
       last-embedded)
@@ -88,7 +93,7 @@ select option in "${!stateActions[@]}"; do
         ;;
       restart-runtime)
         PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
-        restart_options=("Auto-detect kube nodes" "Enter ips" "Done")
+        restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
         select restart_option in "${restart_options[@]}"; do
           case "$REPLY" in
             1)
@@ -119,12 +124,15 @@ select option in "${!stateActions[@]}"; do
       refresh-view)
         . states.sh && exit 0
         ;;
+      snapshot-view)
+        . snapshots.sh && exit 0
+        ;;
       quit)
         prnt "quit"
         break
         ;;
-      *)
-        err "The all match case"
+      cluster-view)
+        err "Cluster view not enabled!"
         ;;
     esac
   fi
