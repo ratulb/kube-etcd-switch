@@ -1,1 +1,1 @@
-systemctl status etcd
+systemctl status etcd --no-pager
