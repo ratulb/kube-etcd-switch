@@ -15,7 +15,7 @@ ETCD_SNAPSHOT=$NEXT_SNAPSHOT
 SNAPSHOT_DIR=${ETCD_SNAPSHOT%/*}
 mkdir -p $SNAPSHOT_DIR
 
-. checks/confirm-action.sh "Proceed" "Cancelled snapshot save."
+. checks/confirm-action.sh "Proceed(y)" "Cancelled snapshot save."
 if [ "$?" -eq 0 ]; then
   ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=$kube_api_etcd_client_cert \

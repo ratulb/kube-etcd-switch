@@ -10,9 +10,6 @@ stateActions+=(['Restore a saved state']='restore')
 stateActions+=(['List the saved states']='list')
 stateActions+=(['Restore last external etcd state']='last-external')
 stateActions+=(['Restore last embedded etcd state']='last-embedded')
-stateActions+=(['System pods states']='pod-state')
-stateActions+=(['Current cluster state']='cluster-state')
-stateActions+=(['Restart kubernetes runtime']='restart-runtime')
 stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
 stateActions+=(['Cluster view']='cluster-view')
@@ -132,7 +129,7 @@ select option in "${!stateActions[@]}"; do
         break
         ;;
       cluster-view)
-        err "Cluster view not enabled!"
+        . cluster.sh && exit 0
         ;;
     esac
   fi

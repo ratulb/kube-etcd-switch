@@ -44,7 +44,7 @@ if saved_snapshot_exists; then
     usr_cluster="${clusters[$user_cluster]}"
     usr_snapshot="${fileNames[$user_snapshot]}"
     debug "User has selected $usr_cluster and $usr_snapshot."
-    . checks/confirm-action.sh "Proceed" "Cancelled snapshot save"
+    . checks/confirm-action.sh "Proceed(y)" "Cancelled snapshot save"
     if [ "$?" -eq 0 ]; then
       [ "$usr_cluster" == 'embedded-up' ] && . restore-snapshot@master.sh "$usr_snapshot"
       [ "$usr_cluster" == 'external-up' ] && . restore-snapshot@nodes.sh "$usr_snapshot"

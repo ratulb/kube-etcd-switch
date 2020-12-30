@@ -1,87 +1,83 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
-prnt "Manage etcd snapshots"
-declare -A snapshotActions
-snapshotActions+=(['Quit']='quit')
-snapshotActions+=(['Refresh view']='refresh-view')
-snapshotActions+=(['Save snapshot']='save')
-snapshotActions+=(['Delete all or selected snapshots']='delete')
-snapshotActions+=(['Restore snapshot']='restore')
-snapshotActions+=(['List snapshots']='list')
-snapshotActions+=(['State view']='state-view')
-snapshotActions+=(['Cluster view']='cluster-view')
+prnt "Manage etcd cluster"
+declare -A clusterActions
+clusterActions+=(['Quit']='quit')
+clusterActions+=(['System pods states']='pod-state')
+clusterActions+=(['Current cluster state']='cluster-state')
+clusterActions+=(['Restart kubernetes runtime']='restart-runtime')
+clusterActions+=(['Refresh view']='refresh-view')
+clusterActions+=(['Snapshot view']='snapshot-view')
+clusterActions+=(['State view']='state-view')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
-select action in "${!snapshotActions[@]}"; do
+select option in "${!clusterActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 11 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
-    case "${snapshotActions[$action]}" in
+    case "${clusterActions[$option]}" in
       list)
-        list_snapshots
+        list_saved_states
         ;;
       save)
-        prnt "Saving snapshot - enter file name"
-        read file_Name
-        if [ ! -z $file_Name ]; then
-          . save-snapshot.sh $file_Name
-        else
-          err "Provide a file name!"
-        fi
+        prnt "Saving state - enter file name"
+        read fileName
+        . save-state.sh $fileName
         ;;
       delete)
-        if saved_snapshot_exists; then
-          PS3="Deleting snapshot - choose option: "
+        if saved_state_exists; then
+          PS3="Deleting states - choose option: "
           delete_options=(All Some Back)
           select delete_option in "${delete_options[@]}"; do
             case "$delete_option" in
               All)
-                echo "Deleting all snapshots"
-                delete_snapshots -a
+                echo "Deleting all saved states"
+                delete_saved_states -a
                 break
                 ;;
               Some)
                 echo "Type in file names - blank line to complete"
-                rm -f /tmp/snapshot_deletions.tmp
+                rm -f /tmp/state_deletions.tmp
                 while read line; do
                   [ -z "$line" ] && break
-                  echo "$line" >>/tmp/snapshot_deletions.tmp
+                  echo "$line" >>/tmp/state_deletions.tmp
                 done
-                if [ -s /tmp/snapshot_deletions.tmp ]; then
-                  selected_for_deletions=$(cat /tmp/snapshot_deletions.tmp | tr "\n" " " | xargs)
-                  delete_snapshots $selected_for_deletions
-                  rm -f /tmp/snapshot_deletions.tmp
-                else
-                  err "None selected!"
-                fi
+                selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
+                delete_saved_states $selected_for_deletions
+                rm -f /tmp/state_deletions.tmp
                 break
                 ;;
               Back)
                 break
-                ;;
-              *)
-                err "Invalid selection"
                 ;;
             esac
           done
           echo ""
           PS3=$'\e[01;32mSelection: \e[0m'
         else
-          prnt "No snapshot to delete"
+          err "No saaved state to delete"
         fi
         ;;
       restore)
-        . widgets/select-and-restore-snapshot.sh
-        echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+        if saved_state_exists; then
+          prnt "Restoring state - enter state name: "
+          read fileName
+          if saved_state_exists $fileName; then
+            . restore-state.sh $fileName
+          fi
+        else
+          err "No saved state to restore!"
+        fi
         ;;
-      state-view)
-        . states.sh && exit 0
+      last-embedded)
+        prnt "Restoring last embedded state"
+        . restore-state.sh embedded-up
         ;;
-      cluster-view)
-        . cluster.sh && exit 0
+      last-external)
+        prnt "Restoring last external state"
+        . restore-state.sh external-up
         ;;
       cluster-state)
         . cs.sh
@@ -119,14 +115,17 @@ select action in "${!snapshotActions[@]}"; do
         PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       refresh-view)
+        . cluster.sh && exit 0
+        ;;
+      snapshot-view)
         . snapshots.sh && exit 0
         ;;
       quit)
         prnt "quit"
         break
         ;;
-      *)
-        err "The all match case"
+      state-view)
+	. states.sh && exit 0
         ;;
     esac
   fi
