@@ -5,7 +5,6 @@
 
 #Generate certs/systemd/install etcd/create remote dirs/copy certs for etcd servers
 . gen-certs.sh
-this_host=$(hostname)
 
 for svr in $etcd_servers; do
   pair=(${svr//:/ })

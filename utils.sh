@@ -21,8 +21,8 @@ read_setup() {
   done <"setup.conf"
 
   if [ -z "$k8s_master" ]; then
-    err "No k8s_master found in setup.conf!"
-    #exit 1
+    #err "No k8s_master found in setup.conf!"
+    echo -e "\033[33;5mNo k8s_master found in setup.conf!\033[0m"
   fi
 
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
@@ -32,8 +32,8 @@ read_setup() {
   export gendir=$(pwd)/generated
 
   if [ -z "$etcd_servers" ]; then
-    echo -e "\e[31mNo etcd servers found in setup.conf!\e[0m"
-    #exit 1
+    #echo -e "\e[31mNo etcd servers found in setup.conf!\e[0m"
+    echo -e "\033[33;5mNo etcd servers found in setup.conf!\033[0m"
   fi
 
   for svr in $etcd_servers; do
@@ -82,7 +82,7 @@ sleep_few_secs() {
 }
 
 can_access_ip() {
-  if [ "$1" == $this_host_ip ]; then
+  if [ "$1" = "$this_host_ip" ]; then
     return 0
   else
     . execute-command-remote.sh $1 ls -la &>/dev/null
@@ -91,6 +91,21 @@ can_access_ip() {
 
 is_master_ip_set() {
   [ ! -z "$master_ip" ] && is_ip $master_ip
+}
+
+upsert_etcd_servers() {
+  node_being_added=$1
+  old_etcd_servers=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
+  old_etcd_servers=$(echo $old_etcd_servers | xargs)
+  if [[ $old_etcd_servers == *"$node_being_added"* ]]; then
+    debug "Node being added is already present in system configuration!"
+  else
+    debug "Appending node being added $node_being_added"
+    replacement="$old_etcd_servers $node_being_added"
+    debug "The replacement is: $replacement"
+    sed -i "s/$old_etcd_servers/$replacement/g" setup.conf
+    prnt "etcd server configuration is updated with $node_being_added"
+  fi
 }
 
 #Launch busybox container called debug
@@ -121,7 +136,7 @@ is_ip() {
   address=$1
   rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
   if [[ "$address" =~ ^$rx\.$rx\.$rx\.$rx$ ]]; then
-    debug "$address is valid ip"
+    prnt "$address is valid ip"
     return 0
   else
     err "$address is not valid ip"
@@ -161,6 +176,12 @@ check_system_init_reqrmnts_met() {
   if [ -z "$2" ]; then
     required_files="$required_files /etc/kubernetes/manifests/etcd.yaml"
   fi
+  check_file_existence $1 $required_files || return 1
+}
+
+check_if_etcd_installed() {
+  #required_files="/usr/local/bin/etcd /usr/local/bin/etcdctl /etc/systemd/system/etcd.service"
+  required_files="/usr/local/bin/etcd /usr/local/bin/etcdctl"
   check_file_existence $1 $required_files || return 1
 }
 

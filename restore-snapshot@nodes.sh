@@ -4,6 +4,10 @@ if [ "$#" -ne 1 ]; then
   err "Usage: $0 snapshot file name"
   exit 1
 fi
+if [ -z "$etcd_ips" ]; then
+  err "No etcd servers. Not proceeding with snapshot restore!"
+  return 1
+fi
 . checks/snapshot-existence.sh
 . checks/snapshot-validity.sh
 . checks/cluster-state.sh

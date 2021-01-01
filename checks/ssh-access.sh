@@ -13,7 +13,7 @@ for ip in $server_ips; do
   if [ "$this_host_ip" = $ip ]; then
     continue
   fi
-  sudo -u $usr ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout 2" $ip ls -la &>/dev/null
+  . execute-command-remote.sh $ip "ls -la &>/dev/null"
   if [ ! "$?" = 0 ]; then
     err "Could not access $ip. Not proceeding!"
     exit 1

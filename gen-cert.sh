@@ -5,7 +5,6 @@ if [ "$#" -ne 2 ]; then
 fi
 . utils.sh
 . checks/ca-cert-existence.sh
-
 host=$1
 ip=$2
  

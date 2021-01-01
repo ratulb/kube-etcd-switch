@@ -10,7 +10,7 @@ if [ "$this_host_ip" = $master_ip ]; then
 else
   . execute-command-remote.sh $master_ip ls /etc/kubernetes/manifests/etcd.yaml
   if [ "$?" -eq 0 ]; then
-    . excute-command-remote.sh $master_ip rm /etc/kubernetes/manifests/etcd.yaml
+    . execute-command-remote.sh $master_ip rm /etc/kubernetes/manifests/etcd.yaml
   else
     err "Stopping etcd - no etcd.yaml @$master_ip"
   fi

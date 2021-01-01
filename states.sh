@@ -101,7 +101,6 @@ select option in "${!stateActions[@]}"; do
               echo "Type in the kube node IPs - blank line to complete: "
               rm -f /tmp/kube_ips.tmp
               while read line; do
-                # break if the line is empty
                 [ -z "$line" ] && break
                 echo "$line" >>/tmp/kube_ips.tmp
               done

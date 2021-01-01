@@ -11,15 +11,20 @@ clusterActions+=(['Refresh view']='refresh-view')
 clusterActions+=(['Snapshot view']='snapshot-view')
 clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
+clusterActions+=(['External etcd']='external-etcd')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
 select option in "${!clusterActions[@]}"; do
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${clusterActions[$option]}" in
       cluster-state)
         . checks/cluster-state.sh
+        ;;
+external-etcd)
+        echo "External etcd"
+        . widgets/external-etcd.sh
         ;;
 system-init)
         . widgets/system-init.sh
