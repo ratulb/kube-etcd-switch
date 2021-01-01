@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 . utils.sh
 
+command_exists kubectl
 args="$@"
 nodes=$(kubectl get nodes -o wide --no-headers | awk '{print $6}' | tr '\n' ' ')
 
 if [ -z "$nodes" -a "$#" -eq 0 ]; then
   err "Cluster node probe failed - Can not proceed."
 else
-    if [ -z "$nodes" -a \( "$#" -gt 0 \) ]; then
+  if [ -z "$nodes" -a \( "$#" -gt 0 \) ]; then
     nodes="$@"
   fi
   for node in $nodes; do

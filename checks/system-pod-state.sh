@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 
+command_exists kubectl
 prnt "Checking kube-system pods..."
 rm status-report 2>/dev/null
 kubectl -n kube-system get pod | tee status-report
@@ -16,3 +17,4 @@ while [ "$i" > 0 ] && [[ ! "$status" = "Running" ]]; do
   status=$(cat status-report | awk '{if(NR>1)print}' | awk '{print $3}' | sort -u | tr "\n" " "| xargs)
 done
 rm -f status-report
+

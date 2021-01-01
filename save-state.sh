@@ -15,7 +15,7 @@ fi
 when=$(date +%F_%H-%M-%S)
 fileName=$1
 
-server_ips="$etcd_ips"
+server_ips=$etcd_ips
 if [[ ! $etcd_ips =~ "$master_ip" ]]; then
   server_ips+=" $master_ip"
 fi

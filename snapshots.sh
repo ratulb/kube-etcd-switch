@@ -15,7 +15,7 @@ re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
 select action in "${!snapshotActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 11 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${snapshotActions[$action]}" in
@@ -69,7 +69,7 @@ select action in "${!snapshotActions[@]}"; do
           echo ""
           PS3=$'\e[01;32mSelection: \e[0m'
         else
-          prnt "No snapshot to delete"
+          err "No snapshot to delete"
         fi
         ;;
       restore)
@@ -78,13 +78,15 @@ select action in "${!snapshotActions[@]}"; do
         PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       state-view)
-        . states.sh && exit 0
+        script=$(readlink -f "states.sh")
+        exec "$script"
         ;;
       cluster-view)
-        . cluster.sh && exit 0
+        script=$(readlink -f "cluster.sh")
+        exec "$script"
         ;;
       cluster-state)
-        . cs.sh
+        . checks/cluster-state.sh
         ;;
       pod-state)
         . checks/system-pod-state.sh
@@ -119,15 +121,17 @@ select action in "${!snapshotActions[@]}"; do
         PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       refresh-view)
-        . snapshots.sh && exit 0
+        script=$(readlink -f "$0")
+        exec "$script"
         ;;
       quit)
         prnt "quit"
         break
         ;;
       *)
-        err "The all match case"
+        err "I am not prgrammed to receive you!"
         ;;
     esac
   fi
 done
+

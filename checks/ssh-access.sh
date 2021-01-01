@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 . utils.sh
 
-this_host_ip=$(hostname -i)
-this_host_ip=$(echo $this_host_ip | cut -d ' ' -f 1)
+#If master ip is not included in etcd_ips, add it to list of servers
+server_ips=$etcd_ips
+if [[ ! $etcd_ips =~ "$master_ip" ]]; then
+  server_ips+=" $master_ip"
+fi
+
 prnt "Make sure SSH public key has been copied to remote servers!"
-for ip in $etcd_ips; do
-  prnt "Checking accessibility on $ip"
+for ip in $server_ips; do
+  prnt "Checking access to $ip"
   if [ "$this_host_ip" = $ip ]; then
     continue
   fi
-
   sudo -u $usr ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout 2" $ip ls -la &>/dev/null
   if [ ! "$?" = 0 ]; then
     err "Could not access $ip. Not proceeding!"

@@ -10,77 +10,21 @@ clusterActions+=(['Restart kubernetes runtime']='restart-runtime')
 clusterActions+=(['Refresh view']='refresh-view')
 clusterActions+=(['Snapshot view']='snapshot-view')
 clusterActions+=(['State view']='state-view')
+clusterActions+=(['System init']='system-init')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
 select option in "${!clusterActions[@]}"; do
-
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${clusterActions[$option]}" in
-      list)
-        list_saved_states
-        ;;
-      save)
-        prnt "Saving state - enter file name"
-        read fileName
-        . save-state.sh $fileName
-        ;;
-      delete)
-        if saved_state_exists; then
-          PS3="Deleting states - choose option: "
-          delete_options=(All Some Back)
-          select delete_option in "${delete_options[@]}"; do
-            case "$delete_option" in
-              All)
-                echo "Deleting all saved states"
-                delete_saved_states -a
-                break
-                ;;
-              Some)
-                echo "Type in file names - blank line to complete"
-                rm -f /tmp/state_deletions.tmp
-                while read line; do
-                  [ -z "$line" ] && break
-                  echo "$line" >>/tmp/state_deletions.tmp
-                done
-                selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
-                delete_saved_states $selected_for_deletions
-                rm -f /tmp/state_deletions.tmp
-                break
-                ;;
-              Back)
-                break
-                ;;
-            esac
-          done
-          echo ""
-          PS3=$'\e[01;32mSelection: \e[0m'
-        else
-          err "No saaved state to delete"
-        fi
-        ;;
-      restore)
-        if saved_state_exists; then
-          prnt "Restoring state - enter state name: "
-          read fileName
-          if saved_state_exists $fileName; then
-            . restore-state.sh $fileName
-          fi
-        else
-          err "No saved state to restore!"
-        fi
-        ;;
-      last-embedded)
-        prnt "Restoring last embedded state"
-        . restore-state.sh embedded-up
-        ;;
-      last-external)
-        prnt "Restoring last external state"
-        . restore-state.sh external-up
-        ;;
       cluster-state)
-        . cs.sh
+        . checks/cluster-state.sh
+        ;;
+system-init)
+        . widgets/system-init.sh
+        echo ""
+        PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       pod-state)
         . checks/system-pod-state.sh
@@ -101,9 +45,13 @@ select option in "${!clusterActions[@]}"; do
                 [ -z "$line" ] && break
                 echo "$line" >>/tmp/kube_ips.tmp
               done
+              if [ -s /tmp/kube_ips.tmp ]; then
               kube_ips=$(cat /tmp/kube_ips.tmp | tr "\n" " " | xargs)
               . restart-runtime.sh $kube_ips
               rm -f /tmp/kube_ips.tmp
+              else
+                err "No node ips provided!"
+              fi
               break
               ;;
             3)
@@ -115,17 +63,20 @@ select option in "${!clusterActions[@]}"; do
         PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       refresh-view)
-        . cluster.sh && exit 0
+        script=$(readlink -f "$0")
+        exec "$script"
         ;;
       snapshot-view)
-        . snapshots.sh && exit 0
+        script=$(readlink -f "snapshots.sh")
+        exec "$script"
         ;;
       quit)
         prnt "quit"
         break
         ;;
       state-view)
-	. states.sh && exit 0
+        script=$(readlink -f "states.sh")
+        exec "$script"
         ;;
     esac
   fi

@@ -21,8 +21,8 @@ read_setup() {
   done <"setup.conf"
 
   if [ -z "$k8s_master" ]; then
-    echo -e "\e[31m No k8s_master found in setup.conf!!!\e[0m"
-    exit 1
+    err "No k8s_master found in setup.conf!"
+    #exit 1
   fi
 
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
@@ -32,8 +32,8 @@ read_setup() {
   export gendir=$(pwd)/generated
 
   if [ -z "$etcd_servers" ]; then
-    echo -e "\e[31m No etcd servers found in setup.conf!!!\e[0m"
-    exit 1
+    echo -e "\e[31mNo etcd servers found in setup.conf!\e[0m"
+    #exit 1
   fi
 
   for svr in $etcd_servers; do
@@ -60,7 +60,7 @@ prnt() {
 
 debug() {
   if [ ! -z "$debug" ]; then
-    err "$1"	  
+    err "$1"
   fi
 }
 
@@ -79,6 +79,18 @@ ask() {
 sleep_few_secs() {
   prnt "Waiting few secs..."
   sleep $sleep_time
+}
+
+can_access_ip() {
+  if [ "$1" == $this_host_ip ]; then
+    return 0
+  else
+    . execute-command-remote.sh $1 ls -la &>/dev/null
+  fi
+}
+
+is_master_ip_set() {
+  [ ! -z "$master_ip" ] && is_ip $master_ip
 }
 
 #Launch busybox container called debug
@@ -103,6 +115,53 @@ install_etcdctl() {
   else
     prnt "etcdctl already installed"
   fi
+}
+
+is_ip() {
+  address=$1
+  rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+  if [[ "$address" =~ ^$rx\.$rx\.$rx\.$rx$ ]]; then
+    debug "$address is valid ip"
+    return 0
+  else
+    err "$address is not valid ip"
+    return 1
+  fi
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    err "$1 not installed. Stopping execution. Has the system been initialized?"
+    exit 1
+  fi
+}
+
+check_file_existence() {
+  host=$1
+  shift
+  files=$@
+  for f in $files; do
+    if [ "$host" = $this_host_ip ]; then
+      if [ ! -s $f ]; then
+        return 1
+      fi
+    else
+      . execute-command-remote.sh $host "[[ -s $f ]]"
+      if [ "$?" -eq 1 ]; then
+        return 1
+      fi
+    fi
+  done
+  return 0
+}
+
+check_system_init_reqrmnts_met() {
+  required_files="/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/manifests/kube-apiserver.yaml ~/.kube/config"
+  if [ -z "$2" ]; then
+    required_files="$required_files /etc/kubernetes/manifests/etcd.yaml"
+  fi
+  check_file_existence $1 $required_files || return 1
 }
 
 gen_token() {
@@ -138,12 +197,12 @@ next_snapshot() {
 }
 
 last_snapshot() {
-  unset LAST_SNAPSHOT
-  search="*.db"
-  if [ ! -z $1 ]; then
-    search="$1-*.db"
-  fi
-  if [ -d $default_backup_loc ]; then
+  if is_default_backup_loc_initialized; then
+    unset LAST_SNAPSHOT
+    search="*.db"
+    if [ ! -z $1 ]; then
+      search="$1-*.db"
+    fi
     count=$(find $default_backup_loc -maxdepth 1 -type f -name "$search" | wc -l)
     if [ $count -gt 0 ]; then
       last_snapshot=$(ls -t $default_backup_loc/$search | head -n 1)
@@ -157,139 +216,164 @@ last_snapshot() {
         debug "No last $1 snapshot found in $default_backup_loc"
       fi
     fi
+  fi
+}
 
+is_default_backup_loc_initialized() {
+  if [ -d $default_backup_loc ]; then
+    return 0
   else
-    debug "Defaullt backup directory $default_backup_loc does not exist!"
+    err "Default backup directory not found. Has the system been initialized?"
+    return 1
   fi
 }
 
 list_snapshots() {
-  count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
-  if [ $count -gt 0 ]; then
-    prnt "Snapshots"
-    find $default_backup_loc -maxdepth 1 -type f -name *.db | xargs -n1 basename | cut -d '.' -f 1 | sort
-  else
-    err "No snapshotfound."
-  fi
-}
-
-delete_snapshots() {
-  case $1 in
-    '')
-      err "Delete snapshot - None selected!"
-      ;;
-    -a | --all)
-      count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
-      if [ $count -gt 0 ]; then
-        rm $default_backup_loc/*.db
-        prnt "Deleted $count snaspshots"
-      else
-        err "No snapshot delete"
-      fi
-      ;;
-    *)
-      deleted=''
-      not_deleted=''
-      for f in "$@"; do
-        if [ -f $default_backup_loc/$f.db ]; then
-          rm $default_backup_loc/$f.db
-          if [ -z "$deleted" ]; then
-            deleted=$f
-          else
-            deleted="$deleted $f"
-          fi
-        else
-          if [ -z "$not_deleted" ]; then
-            not_deleted=$f
-          else
-            not_deleted="$not_deleted $f"
-          fi
-        fi
-      done
-      if [ ! -z "$deleted" ]; then
-        prnt "Deleted $deleted"
-      fi
-      if [ ! -z "$not_deleted" ]; then
-        err "Not deleted $not_deleted because not found."
-      fi
-      ;;
-  esac
-}
-
-last_saved_state() {
-  unset LAST_SAVE
-  last_archive=''
-  search="*.tar.gz"
-  if [ ! -z "$1" ]; then
-    search="$1*.tar.gz"
-  fi
-  count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
-  if [ $count -gt 0 ]; then
-    last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
-    last_archive=$(readlink -f $last_archive)
-    export LAST_SAVE=$last_archive
-    debug "Last saved state is: $LAST_SAVE"
-  else
-    if [ -z "$1" ]; then
-      debug "No saved state found in $kube_vault/migration-archive"
+  if is_default_backup_loc_initialized; then
+    count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
+    if [ $count -gt 0 ]; then
+      prnt "Snapshots"
+      find $default_backup_loc -maxdepth 1 -type f -name *.db | xargs -n1 basename | cut -d '.' -f 1 | sort
     else
-      debug "Saved state $1 not found in $kube_vault/migration-archive"
+      err "No snapshot found."
     fi
   fi
 }
 
-list_saved_states() {
-  count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
-  if [ $count -gt 0 ]; then
-    prnt "Last good states"
-    #find $kube_vault/migration-archive -maxdepth 1 -type f -name *.tar.gz | xargs -n1 basename | cut -d '.' -f 1 | sort
-   ls -lat $kube_vault/migration-archive/*.tar.gz | awk '{print $9}' | xargs -n1 basename | cut -d '.' -f 1
+delete_snapshots() {
+  if is_default_backup_loc_initialized; then
+    case $1 in
+      '')
+        err "Delete snapshot - None selected!"
+        ;;
+      -a | --all)
+        count=$(find $default_backup_loc -maxdepth 1 -type f -name "*.db" | wc -l)
+        if [ $count -gt 0 ]; then
+          rm $default_backup_loc/*.db
+          prnt "Deleted $count snaspshots"
+        else
+          err "No snapshot delete"
+        fi
+        ;;
+      *)
+        deleted=''
+        not_deleted=''
+        for f in "$@"; do
+          if [ -f $default_backup_loc/$f.db ]; then
+            rm $default_backup_loc/$f.db
+            if [ -z "$deleted" ]; then
+              deleted=$f
+            else
+              deleted="$deleted $f"
+            fi
+          else
+            if [ -z "$not_deleted" ]; then
+              not_deleted=$f
+            else
+              not_deleted="$not_deleted $f"
+            fi
+          fi
+        done
+        if [ ! -z "$deleted" ]; then
+          prnt "Deleted $deleted"
+        fi
+        if [ ! -z "$not_deleted" ]; then
+          err "Not deleted $not_deleted because not found."
+        fi
+        ;;
+    esac
+  fi
+}
+
+last_saved_state() {
+  if is_kube_vault_initialized; then
+    unset LAST_SAVE
+    last_archive=''
+    search="*.tar.gz"
+    if [ ! -z "$1" ]; then
+      search="$1*.tar.gz"
+    fi
+    count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "$search" | wc -l)
+    if [ $count -gt 0 ]; then
+      last_archive=$(ls -t $kube_vault/migration-archive/$search | head -n 1)
+      last_archive=$(readlink -f $last_archive)
+      export LAST_SAVE=$last_archive
+      debug "Last saved state is: $LAST_SAVE"
+    else
+      if [ -z "$1" ]; then
+        debug "No saved state found in $kube_vault/migration-archive"
+      else
+        debug "Saved state $1 not found in $kube_vault/migration-archive"
+      fi
+    fi
+  fi
+}
+
+is_kube_vault_initialized() {
+  if [ -d $kube_vault ]; then
+    return 0
   else
-    err "No last good state found."
+    err "kube vault not found. Has the system been initialized?"
+    return 1
+  fi
+}
+
+list_saved_states() {
+  if is_kube_vault_initialized; then
+    count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
+    if [ $count -gt 0 ]; then
+      prnt "Last good states"
+      #find $kube_vault/migration-archive -maxdepth 1 -type f -name *.tar.gz | xargs -n1 basename | cut -d '.' -f 1 | sort
+      ls -lat $kube_vault/migration-archive/*.tar.gz | awk '{print $9}' | xargs -n1 basename | cut -d '.' -f 1
+    else
+      err "No last good state found."
+    fi
   fi
 }
 
 delete_saved_states() {
-  case $1 in
-    '')
-      err "No parameters supplied!"
-      ;;
-    -a | --all)
-      count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
-      if [ $count -gt 0 ]; then
-        rm $kube_vault/migration-archive/*.tar.gz
-        prnt "Deleted $count saved states"
-      else
-        err "No saved state to delete"
-      fi
-      ;;
-    *)
-      deleted=''
-      not_deleted=''
-      for f in "$@"; do
-        if [ -f $kube_vault/migration-archive/$f.tar.gz ]; then
-          rm $kube_vault/migration-archive/$f.tar.gz
-          if [ -z "$deleted" ]; then
-            deleted=$f
-          else
-            deleted="$deleted $f"
-          fi
+  if is_kube_vault_initialized; then
+    case $1 in
+      '')
+        err "No parameters supplied!"
+        ;;
+      -a | --all)
+        count=$(find $kube_vault/migration-archive -maxdepth 1 -type f -name "*.tar.gz" | wc -l)
+        if [ $count -gt 0 ]; then
+          rm $kube_vault/migration-archive/*.tar.gz
+          prnt "Deleted $count saved states"
         else
-          if [ -z "$not_deleted" ]; then
-            not_deleted=$f
-          else
-            not_deleted="$not_deleted $f"
-          fi
+          err "No saved state to delete"
         fi
-      done
-      if [ ! -z "$deleted" ]; then
-        prnt "Deleted $deleted"
-      fi
-      if [ ! -z "$not_deleted" ]; then
-        err "Not deleted $not_deleted because not found."
-      fi
-      ;;
-  esac
+        ;;
+      *)
+        deleted=''
+        not_deleted=''
+        for f in "$@"; do
+          if [ -f $kube_vault/migration-archive/$f.tar.gz ]; then
+            rm $kube_vault/migration-archive/$f.tar.gz
+            if [ -z "$deleted" ]; then
+              deleted=$f
+            else
+              deleted="$deleted $f"
+            fi
+          else
+            if [ -z "$not_deleted" ]; then
+              not_deleted=$f
+            else
+              not_deleted="$not_deleted $f"
+            fi
+          fi
+        done
+        if [ ! -z "$deleted" ]; then
+          prnt "Deleted $deleted"
+        fi
+        if [ ! -z "$not_deleted" ]; then
+          err "Not deleted $not_deleted because not found."
+        fi
+        ;;
+    esac
+  fi
 }
 
 saved_state_exists() {
@@ -314,7 +398,7 @@ next_data_dir() {
   else
     count=$(sudo -u $usr ssh $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
     if [ $count ] >0 && sudo -u $usr ssh $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
-      . execute-command-remote.sh  $1 "ls -l $default_restore_path | grep ^d >list.txt"
+      . execute-command-remote.sh $1 "ls -l $default_restore_path | grep ^d >list.txt"
       cat list.txt | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
@@ -376,9 +460,8 @@ dress_up_script() {
       sed -i "s|#TOKEN#|$4|g" etcd-restore-cluster.script.tmp
       sed -i "s|#INITIAL_CLUSTER#|$5|g" etcd-restore-cluster.script.tmp
       ;;
-
     *)
-      echo "Not handled yet!"
+      echo "Not my case!"
       ;;
   esac
 }

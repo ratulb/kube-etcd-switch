@@ -17,7 +17,7 @@ re="^[0-9]+$"
 PS3=$'\e[01;32mSelection: \e[0m'
 select option in "${!stateActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${stateActions[$option]}" in
@@ -119,17 +119,20 @@ select option in "${!stateActions[@]}"; do
         PS3=$'\e[01;32mSelection: \e[0m'
         ;;
       refresh-view)
-        . states.sh && exit 0
+        script=$(readlink -f "$0")
+        exec "$script"
         ;;
       snapshot-view)
-        . snapshots.sh && exit 0
+        script=$(readlink -f "snapshots.sh")
+        exec "$script"
         ;;
       quit)
         prnt "quit"
         break
         ;;
       cluster-view)
-        . cluster.sh && exit 0
+        script=$(readlink -f "cluster.sh")
+        exec "$script"
         ;;
     esac
   fi

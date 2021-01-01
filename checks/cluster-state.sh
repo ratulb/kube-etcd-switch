@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
+command_exists kubectl 
 unset cluster_state
 unset cluster_desc
 if [ ! -z "$debug" ]; then
@@ -13,7 +14,7 @@ cluster_up=$?
 if [ "$this_host_ip" = "$master_ip" ]; then
   ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
 else
-  . execute-command-remote $master_ip ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
+  . execute-command-remote.sh $master_ip ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
 fi
 
 etcd_yaml_present=$?

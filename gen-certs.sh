@@ -11,7 +11,7 @@ rm -f ${gendir}/*.crt
 rm -f ${gendir}/*.key
 count=0
 #for svr in $etcd_servers; do
-for host in "${!mappings[@]}"
+for host in "${!mappings[@]}";do
  #pair=(${svr//:/ })
  #host=${pair[0]}
  #ip=${pair[1]}
