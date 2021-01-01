@@ -273,7 +273,7 @@ delete_snapshots() {
           rm $default_backup_loc/*.db
           prnt "Deleted $count snaspshots"
         else
-          err "No snapshot delete"
+          err "No snapshot to delete"
         fi
         ;;
       *)
