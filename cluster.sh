@@ -27,6 +27,10 @@ select option in "${!clusterActions[@]}"; do
         . widgets/external-etcd.sh
         ;;
       system-init)
+        . checks/cluster-state.sh &> /dev/null
+        if [ "$cluster_state" = "external-up" ]; then
+	  warn "System init will fail when cluster is running on external etcd!"
+        fi
         . widgets/system-init.sh
         system_init_response=$?
         debug "System init response: $system_init_response"

@@ -48,3 +48,4 @@ prnt "Restored snapshot accross etcd cluster. Will switch api server to external
 . switch-to-etcd-cluster.sh
 . checks/endpoint-liveness-cluster.sh 5 3
 . checks/system-pod-state.sh 5 3
+kubectl -n kube-system delete pod etcd-$master_name > /dev/null 2>&1 &
