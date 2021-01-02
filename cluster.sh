@@ -22,18 +22,22 @@ select option in "${!clusterActions[@]}"; do
       cluster-state)
         . checks/cluster-state.sh
         ;;
-external-etcd)
+      external-etcd)
         echo "External etcd"
         . widgets/external-etcd.sh
         ;;
-system-init)
-        . widgets/system-init.sh 
+      system-init)
+        . widgets/system-init.sh
         system_init_response=$?
-	debug "System init response: $system_init_response"
-	if [ "$system_init_response" -ne 0 ]; then
+        debug "System init response: $system_init_response"
+        if [ "$system_init_response" -ne 0 ]; then
           err "System init was not complete - turn on debug & check messages."
         else
-          prnt "System init is complete"
+          if [ "$user_action" = "q" ]; then
+            prnt "Cancelled"
+          else
+            prnt "System init is complete"
+          fi
         fi
         echo ""
         PS3=$'\e[01;32mSelection(mec): \e[0m'
@@ -58,9 +62,9 @@ system-init)
                 echo "$line" >>/tmp/kube_ips.tmp
               done
               if [ -s /tmp/kube_ips.tmp ]; then
-              kube_ips=$(cat /tmp/kube_ips.tmp | tr "\n" " " | xargs)
-              . restart-runtime.sh $kube_ips
-              rm -f /tmp/kube_ips.tmp
+                kube_ips=$(cat /tmp/kube_ips.tmp | tr "\n" " " | xargs)
+                . restart-runtime.sh $kube_ips
+                rm -f /tmp/kube_ips.tmp
               else
                 err "No node ips provided!"
               fi

@@ -29,37 +29,63 @@ if [ ! "$this_host_ip" = "$master_ip" ]; then
   prnt "Copying etcd certs to $this_host_ip"
   sudo mkdir -p /etc/kubernetes/pki/etcd/
 
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/ || ( err "Could not copy client cert from $master_ip. System initialization is not complete!" && exit 1 )
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/
 
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/ 
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy client cert from $master_ip. System initialization is not complete!"
+    return 1
+  fi
 
-if [ "$?" -ne 0 ]; then
-  err "Could not copy client key from $master_ip. System initialization is not complete!"
-  return 1
-fi
-#TODO The above check need to be repeated for all
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ || ( err "Could not copy ca.cert from $master_ip. System initialization is not complete!" && exit 1 )
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/
 
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/pki/etcd/ || ( err "Could not copy ca.key from $master_ip. System initialization is not complete!" && exit 1 )
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy client key from $master_ip. System initialization is not complete!"
+    return 1
+  fi
 
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/manifests/etcd.yaml  $kube_vault
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/
 
-sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy ca.crt from $master_ip. System initialization is not complete!"
+    return 1
+  fi
 
-    if [ -s $kube_vault/etcd.yaml ]; then
-      cat $kube_vault/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
-      rm $kube_vault/etcd.yaml
-    else
-      echo -e "\e[31metcd.yaml is empty or does not exist! System initialization not complete.\e[0m"
-      exit 1
-    fi
-    if [ -s $kube_vault/kube-apiserver.yaml ]; then
-      cat $kube_vault/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
-      rm $kube_vault/kube-apiserver.yaml
-    else
-      echo -e "\e[31mkube-apiserver.yaml is empty or does not exist! System initialization not complete.\e[0m"
-      exit 1
-    fi
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/pki/etcd/
+
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy ca.key from $master_ip. System initialization is not complete!"
+    return 1
+  fi
+
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/manifests/etcd.yaml $kube_vault
+
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy etcd.yaml $master_ip. System initialization is not complete!"
+    return 1
+  fi
+
+  if [ -s $kube_vault/etcd.yaml ]; then
+    cat $kube_vault/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
+    rm $kube_vault/etcd.yaml
+  else
+    echo -e "\e[31metcd.yaml is empty or does not exist! System initialization not complete.\e[0m"
+    return 1
+  fi
+
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault
+
+  if [ "$?" -ne 0 ]; then
+    err "Could not copy kube-apiserver.yaml from $master_ip. System initialization is not complete!"
+    return 1
+  fi
+
+  if [ -s $kube_vault/kube-apiserver.yaml ]; then
+    cat $kube_vault/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
+    rm $kube_vault/kube-apiserver.yaml
+  else
+    echo -e "\e[31mkube-apiserver.yaml is empty or does not exist! System initialization not complete.\e[0m"
+    return 1
+  fi
 
   prnt "Setting up kubectl on $this_host_ip"
   . setup-kubectl.sh
@@ -71,13 +97,13 @@ else
     cat /etc/kubernetes/manifests/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
   else
     echo -e "\e[31metcd.yaml is empty or does not exist! System initialization is not complete!\e[0m"
-    exit 1
+    return 1
   fi
   if [ -s /etc/kubernetes/manifests/kube-apiserver.yaml ]; then
     cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
   else
     echo -e "\e[31mkube-apiserver.yaml is empty or does not exist! System initialization is not complete!\e[0m"
-    exit 1
+    return 1
   fi
 fi
 

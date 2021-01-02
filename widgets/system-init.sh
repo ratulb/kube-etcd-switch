@@ -6,8 +6,10 @@ if is_master_ip_set; then
   prnt "Master ip: $master_ip"
   PS3=$'\e[01;32mSelect(q to quit): \e[0m'
   choices=('Initialize system' 'Edit master ip')
+  unset user_action
   select choice in "${choices[@]}"; do
     if [ "$REPLY" == 'q' ]; then
+      user_action='q'
       break
     elif ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 2 -o "$REPLY" -lt 1 ]; then
       err "Invalid selection!"
@@ -22,12 +24,12 @@ if is_master_ip_set; then
               . checks/confirm-action.sh "Proceed(y)" "Cancelled system init"
               if [ "$?" -eq 0 ]; then
                 . system-init.sh
-		if [ "$?" -ne 0 ]; then
+                if [ "$?" -ne 0 ]; then
                   err "System initialization is not complete!"
-		    return 1
-		  else
-                    break
- 	        fi
+                  return 1
+                else
+                  break
+                fi
               fi
             else
               err "System configuration check @$master_ip failed!"
