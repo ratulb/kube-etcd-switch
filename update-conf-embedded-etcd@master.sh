@@ -22,8 +22,8 @@ if [ "$this_host_ip" = $master_ip ]; then
   cp etcd.draft /etc/kubernetes/manifests/etcd.yaml
   cp kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 else
-  sudo -u $usr scp etcd.draft $1:/etc/kubernetes/manifests/etcd.yaml
-  sudo -u $usr scp kube.draft $1:/etc/kubernetes/manifests/kube-apiserver.yaml
+  sudo -u $usr scp etcd.draft $master_ip:/etc/kubernetes/manifests/etcd.yaml
+  sudo -u $usr scp kube.draft $master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml
 fi
 
 

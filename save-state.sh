@@ -22,15 +22,33 @@ fi
 
 mkdir -p $kube_vault/system-snaps
 mkdir -p $kube_vault/migration-archive
+skipped_hosts=''
+saved_hosts=''
 for ip in $server_ips; do
-  if [ "$ip" = "$this_host_ip" ]; then
-    . archive.script
-    mv $kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
+  if can_access_ip $ip; then
+    if [ "$ip" = "$this_host_ip" ]; then
+      . archive.script
+      mv $kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
+    else
+      . execute-script-remote.sh $ip archive.script
+      sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        $ip:/$kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
+      . execute-command-remote.sh $ip "rm -rf /$kube_vault/system-snap/*"
+    fi
+    prnt "Saved state for host($ip)"
+    if [ -z "saved_hosts" ]; then
+      saved_hosts="$ip"
+    else
+      saved_hosts+=,$ip
+    fi
+
   else
-    . execute-script-remote.sh $ip archive.script
-    sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-      $ip:/$kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
-    . execute-command-remote.sh $ip "rm -rf /$kube_vault/system-snap/*"
+    err "Could not access host($ip) - state not saved!"
+    if [ -z "$skipped_hosts" ]; then
+      skipped_hosts="$ip"
+    else
+      skipped_hosts+=,$ip
+    fi
   fi
 done
 
@@ -40,6 +58,8 @@ mv $cluster_state#$fileName@$when.tar.gz migration-archive && rm -rf $kube_vault
 
 archived_file_name="$(basename $cluster_state#$fileName@$when.tar.gz)"
 archived_file_name=$(echo $archived_file_name | cut -d'.' -f1)
-prnt "Saved state: $archived_file_name"
+prnt "Saved state: $archived_file_name for $saved_hosts"
+if [ ! -z "$skipped_hosts" ]; then 
+  err "Could not access $skipped_hosts - State was not saved for!"
+fi
 cd - &>/dev/null
-

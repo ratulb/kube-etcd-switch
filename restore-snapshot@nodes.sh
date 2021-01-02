@@ -19,24 +19,28 @@ rm $gendir/.token &>/dev/null
 token=''
 gen_token token
 if [ "$cluster_state" = 'embedded-up' ] || [ "$cluster_state" = 'external-up' ]; then
- . save-state.sh $token
+  . save-state.sh $token
 fi
 . gen-systemd-configs.sh
 
 etcd_initial_cluster
 etcd_initial_cluster=$ETCD_INITIAL_CLUSTER
 for ip in $etcd_ips; do
-  . copy-snapshot.sh $etcd_snapshot $ip
-  . checks/snapshot-validity@destination.sh $ip $etcd_snapshot
-  if [ "$this_host_ip" = $ip ]; then
-    cp $gendir/$ip-etcd.service /etc/systemd/system/etcd.service
+  if can_access_ip $ip; then
+    . copy-snapshot.sh $etcd_snapshot $ip
+    . checks/snapshot-validity@destination.sh $ip $etcd_snapshot
+    if [ "$this_host_ip" = $ip ]; then
+      cp $gendir/$ip-etcd.service /etc/systemd/system/etcd.service
+    else
+      . copy-systemd-config.sh $ip
+    fi
+    next_data_dir $ip
+    restore_path=$NEXT_DATA_DIR
+    . restore-snapshot-cluster.sh $etcd_snapshot $restore_path $token $ip $etcd_initial_cluster
+    unset restore_path
   else
-    . copy-systemd-config.sh $ip
+    err "Could not access host($ip) - restore artifacts not copied to!"
   fi
-  next_data_dir $ip
-  restore_path=$NEXT_DATA_DIR
-  . restore-snapshot-cluster.sh $etcd_snapshot $restore_path $token $ip $etcd_initial_cluster
-  unset restore_path
 done
 
 prnt "Restored snapshot accross etcd cluster. Will switch api server to external etcd cluster."

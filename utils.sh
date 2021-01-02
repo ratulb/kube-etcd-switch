@@ -434,10 +434,14 @@ next_data_dir() {
 api_server_etcd_url() {
   _etcd_servers=''
   for ip in $etcd_ips; do
-    if [ -z $_etcd_servers ]; then
-      _etcd_servers=https://$ip:2379
+    if can_access_ip $ip; then
+      if [ -z $_etcd_servers ]; then
+        _etcd_servers=https://$ip:2379
+      else
+        _etcd_servers+=,https://$ip:2379
+      fi
     else
-      _etcd_servers+=,https://$ip:2379
+      err "Can not access host($ip) - ignored as etcd server end point!"
     fi
   done
   export API_SERVER_ETCD_URL=$_etcd_servers
@@ -450,10 +454,14 @@ etcd_initial_cluster() {
     pair=(${svr//:/ })
     host=${pair[0]}
     ip=${pair[1]}
-    if [ -z $initial_cluster ]; then
-      initial_cluster=$host=https://$ip:2380
+    if can_access_ip $ip; then
+      if [ -z $initial_cluster ]; then
+        initial_cluster=$host=https://$ip:2380
+      else
+        initial_cluster+=,$host=https://$ip:2380
+      fi
     else
-      initial_cluster+=,$host=https://$ip:2380
+      err "Could not access host($ip) - was ignored as part of etcd initial cluster"
     fi
   done
   export ETCD_INITIAL_CLUSTER=$initial_cluster
@@ -487,7 +495,7 @@ dress_up_script() {
   esac
 }
 #Might need change if ping is disabled
-is_machine_up(){
+is_machine_up() {
   ping -Oc 3 $1
   if [ "$?" -eq 0 ]; then
     return 0

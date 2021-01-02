@@ -26,7 +26,6 @@ select option in "${!stateActions[@]}"; do
         if [ -z "$etcd_servers" ]; then
           err "No etcd node found"
         else
-          read_setup
           prnt "Configured etcd servers: $etcd_ips"
           headers='Host,IP,Accessible,Status'
           echo $headers >/tmp/temp_file

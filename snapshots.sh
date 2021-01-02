@@ -23,8 +23,8 @@ select action in "${!snapshotActions[@]}"; do
         list_snapshots
         ;;
       save)
-        prnt "Saving snapshot - enter file name"
-        read file_Name
+        prnt "Saving snapshot"
+        read -p 'Enter file name: ' file_Name
         if [ ! -z $file_Name ]; then
           . save-snapshot.sh $file_Name
         else

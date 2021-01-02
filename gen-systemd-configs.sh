@@ -15,15 +15,19 @@ for svr in $etcd_servers; do
   pair=(${svr//:/ })
   host=${pair[0]}
   ip=${pair[1]}
-  next_data_dir $ip
-  restore_path=${RESTORE_PATH:-$NEXT_DATA_DIR}
-  cp etcd-systemd-config.template $gendir/$ip-etcd.service
-  cd $gendir
-  sed -i "s/#etcd-host#/$host/g" $ip-etcd.service
-  sed -i "s/#etcd-ip#/$ip/g" $ip-etcd.service
-  sed -i "s|#data-dir#|$restore_path|g" $ip-etcd.service
-  sed -i "s|#initial-cluster-token#|$token|g" $ip-etcd.service
-  sed -i "s|#initial-cluster#|${initial_cluster}|g" $ip-etcd.service
-  cd - &>/dev/null
-  debug "generated systemd service config file $gendir/$ip-etcd.service"
+  if can_access_ip $ip; then
+    next_data_dir $ip
+    restore_path=${RESTORE_PATH:-$NEXT_DATA_DIR}
+    cp etcd-systemd-config.template $gendir/$ip-etcd.service
+    cd $gendir
+    sed -i "s/#etcd-host#/$host/g" $ip-etcd.service
+    sed -i "s/#etcd-ip#/$ip/g" $ip-etcd.service
+    sed -i "s|#data-dir#|$restore_path|g" $ip-etcd.service
+    sed -i "s|#initial-cluster-token#|$token|g" $ip-etcd.service
+    sed -i "s|#initial-cluster#|${initial_cluster}|g" $ip-etcd.service
+    cd - &>/dev/null
+    debug "generated systemd service config file $gendir/$ip-etcd.service"
+  else
+    err "Could not access host($ip) - skipped systemd config generation"
+  fi
 done

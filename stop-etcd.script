@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-
+ip=$(hostname -i)
 systemctl stop etcd 2> /dev/null
 systemctl disable etcd 2> /dev/null
 systemctl daemon-reload
-echo "External etcd stopped"
+echo "External etcd stopped on host($ip)"
