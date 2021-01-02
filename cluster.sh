@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
-prnt "Manage etcd cluster"
+prnt "Manage etcd cluster(mec)"
 declare -A clusterActions
 clusterActions+=(['Quit']='quit')
 clusterActions+=(['System pods states']='pod-state')
@@ -13,7 +13,7 @@ clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
 clusterActions+=(['External etcd']='external-etcd')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection: \e[0m'
+PS3=$'\e[01;32mSelectioni(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
@@ -29,7 +29,7 @@ external-etcd)
 system-init)
         . widgets/system-init.sh
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+        PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;
       pod-state)
         . checks/system-pod-state.sh
@@ -65,7 +65,7 @@ system-init)
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+        PS3=$'\e[01;32mSelection(mec) \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

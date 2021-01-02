@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 . utils.sh
 . checks/ca-cert-existence.sh
-
 host=$1
 ip=$2
-
-err "$host $ip $host $ip  $host $ip $host $ip $host $ip $host $ip "
-
 if ! can_access_ip $ip; then
   err "Can not access server($ip). Not proceeding with etcd setup"
   return 1
 fi
-
 #Generate certs/systemd/install etcd/create remote dirs/copy certs for single etcd node
 . gen-cert.sh $host $ip
 
@@ -30,4 +25,4 @@ else
   . copy-certs.sh $host $ip
 fi
 
-prnt "Etcd cluster has been setup successfully at $host($ip)"
+prnt "Etcd node $host($ip) was successfully added."
