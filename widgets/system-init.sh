@@ -22,10 +22,16 @@ if is_master_ip_set; then
               . checks/confirm-action.sh "Proceed(y)" "Cancelled system init"
               if [ "$?" -eq 0 ]; then
                 . system-init.sh
-                break
+		if [ "$?" -ne 0 ]; then
+                  err "System initialization is not complete!"
+		    return 1
+		  else
+                    break
+ 	        fi
               fi
             else
               err "System configuration check @$master_ip failed!"
+              return 1
             fi
           else
             err "Can not access $master_ip. Has this machine's ssh key been copied to $master_ip?"

@@ -27,7 +27,14 @@ external-etcd)
         . widgets/external-etcd.sh
         ;;
 system-init)
-        . widgets/system-init.sh
+        . widgets/system-init.sh 
+        system_init_response=$?
+	debug "System init response: $system_init_response"
+	if [ "$system_init_response" -ne 0 ]; then
+          err "System init was not complete - turn on debug & check messages."
+        else
+          prnt "System init is complete"
+        fi
         echo ""
         PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;

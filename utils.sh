@@ -159,11 +159,17 @@ check_file_existence() {
   for f in $files; do
     if [ "$host" = $this_host_ip ]; then
       if [ ! -s $f ]; then
+        if [ ! -z "$debug" ]; then
+	  err "File existence check failed for $f @host($host)"
+        fi
         return 1
       fi
     else
       . execute-command-remote.sh $host "[[ -s $f ]]"
       if [ "$?" -eq 1 ]; then
+        if [ ! -z "$debug" ]; then
+          err "File existence check failed for $f @host($host)"
+        fi
         return 1
       fi
     fi
