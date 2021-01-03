@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
+#Observer how this behave
+kubectl -n kube-system delete pod etcd-$master_name > /dev/null 2>&1 &
 
 if [ "$this_host_ip" = $master_ip ]; then
   if [ -f /etc/kubernetes/manifests/etcd.yaml ]; then

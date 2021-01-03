@@ -72,7 +72,7 @@ select option in "${!stateActions[@]}"; do
             prnt "Updating etcd server configuration"
             node_being_added=$nodeName:$nodeIp
             upsert_etcd_servers $node_being_added
-            read_setup
+            #read_setup
           else
             err "$nodeIp is not accesible. Has this machine's ssh key been addded to $nodeIp?"
           fi

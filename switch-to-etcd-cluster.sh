@@ -11,7 +11,7 @@ if [ "$this_host_ip" = $master_ip ]; then
 else
   sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
-    kube.draft $master_ip:/etc/systemd/manifests/kube-apiserver.yaml
+    kube.draft $master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml
 fi
 . stop-embedded-etcd.sh
 . start-external-etcds.sh

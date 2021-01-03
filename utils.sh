@@ -106,6 +106,7 @@ upsert_etcd_servers() {
     sed -i "s/$old_etcd_servers/$replacement/g" setup.conf
     prnt "etcd server configuration is updated with $node_being_added"
   fi
+  read_setup
 }
 
 #Launch busybox container called debug

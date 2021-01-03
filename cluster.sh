@@ -13,7 +13,7 @@ clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
 clusterActions+=(['External etcd']='external-etcd')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelectioni(mec): \e[0m'
+PS3=$'\e[01;32mSelection(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
