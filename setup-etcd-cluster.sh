@@ -25,6 +25,7 @@ for svr in $etcd_servers; do
     prnt "Copying certs to remote machine $ip"
     . copy-certs.sh $host $ip
   fi
+  rm prepare-etcd-dirs.script.tmp
 done
 
 prnt "Etcd cluster has been setup successfully on $etcd_ips!"

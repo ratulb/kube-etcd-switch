@@ -15,7 +15,9 @@ sudo mkdir -p $kube_vault/migration-archive
 sudo mkdir -p $default_backup_loc
 sudo mkdir -p $gendir
 sudo rm cs.sh
-sudo ln -s ./checks/cluster-state.sh cs.sh
+sudo rm ep.sh
+sudo ln -s checks/cluster-state.sh cs.sh
+sudo ln -s checks/endpoint-liveness-cluster.sh ep.sh
 
 prnt "Installing etcd on $this_host_ip"
 . install-etcd.script
