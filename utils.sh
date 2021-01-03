@@ -1,7 +1,27 @@
 #!/usr/bin/env bash
 export usr=$(whoami)
+
+debug() {
+  if [ ! -z "$debug" ]; then
+    echo -e "\033[1;34m$1\033[0m"
+  fi
+}
+
+normalize_etcd_entries() {
+  current_entries=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
+  debug "current entries: $current_entries"
+  normalized_entries=''
+
+  for entry in $current_entries; do
+    if [[ ! "$normalized_entries" =~ "$entry" ]]; then
+      normalized_entries+=" $entry"
+    fi
+  done
+  normalized_entries=$(echo $normalized_entries | xargs)
+  debug $normalized_entries
+  sed -i "s|$current_entries|$normalized_entries|g" setup.conf
+}
 read_setup() {
-  normalize_etcd_entries
   etcd_ips=''
   etcd_names=''
   while IFS="=" read -r key value; do
@@ -53,31 +73,11 @@ read_setup() {
   export etcd_names=$etcd_names
 }
 
+"normalize_etcd_entries"
 "read_setup"
-
-normalize_etcd_entries() {
-  current_entries=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
-  debug "current entries: $current_entries"
-  normalized_entries=''
-
-  for entry in $current_entries; do
-    if [[ ! "$normalized_entries" =~ "$entry" ]]; then
-      normalized_entries+=" $entry"
-    fi
-  done
-  normalized_entries=$(echo $normalized_entries | xargs)
-  debug $normalized_entries
-  sed -i "s|$current_entries|$normalized_entries|g" setup.conf
-}
 
 prnt() {
   echo -e $"\e[01;32m$1\e[0m"
-}
-
-debug() {
-  if [ ! -z "$debug" ]; then
-    echo -e "\033[1;34m$1\033[0m"
-  fi
 }
 
 err() {
