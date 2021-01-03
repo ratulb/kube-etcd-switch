@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 export usr=$(whoami)
 read_setup() {
+  normalize_etcd_entries
   etcd_ips=''
   etcd_names=''
   while IFS="=" read -r key value; do
@@ -53,6 +54,21 @@ read_setup() {
 }
 
 "read_setup"
+
+normalize_etcd_entries() {
+  current_entries=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
+  debug "current entries: $current_entries"
+  normalized_entries=''
+
+  for entry in $current_entries; do
+    if [[ ! "$normalized_entries" =~ "$entry" ]]; then
+      normalized_entries+=" $entry"
+    fi
+  done
+  normalized_entries=$(echo $normalized_entries | xargs)
+  debug $normalized_entries
+  sed -i "s|$current_entries|$normalized_entries|g" setup.conf
+}
 
 prnt() {
   echo -e $"\e[01;32m$1\e[0m"
@@ -161,7 +177,7 @@ check_file_existence() {
     if [ "$host" = $this_host_ip ]; then
       if [ ! -s $f ]; then
         if [ ! -z "$debug" ]; then
-	  err "File existence check failed for $f @host($host)"
+          err "File existence check failed for $f @host($host)"
         fi
         return 1
       fi
