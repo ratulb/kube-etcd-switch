@@ -23,7 +23,7 @@ else
   i=$1
   secs=$2
   status=1
-  while [ "$i" -gt 0 ] && [[ ! "$status" = 0 ]]; do
+  while [[ "$i" -gt 0 ]] && [[ ! "$status" = 0 ]]; do
     if [ -z "$debug" ]; then
       ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
         --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \

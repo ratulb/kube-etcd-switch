@@ -1,31 +1,27 @@
 #!/usr/bin/env bash
-
 . utils.sh
 
-if [ "$#" -ne 2 ]; then
-  err "Usage: $0 'etcd host' 'etcd ip'" >&2
+if [ "$#" -ne 3 ]; then
+  err "Usage: $0 'etcd host' 'etcd ip' 'initial cluster url'" >&2
   exit 1
 fi
+host=$1
+ip=$2
+cluster=$3
+prnt "Node becoming member of : $cluster"
+next_data_dir $ip
+restore_path=$NEXT_DATA_DIR
 
-token=''
-gen_token token
-
-next_data_dir $2
-
-RESTORE_PATH=${RESTORE_PATH:-$NEXT_DATA_DIR}
-cluster_token=${initial_cluster_token:-$token}
-cluster=${initial_cluster:-$1=https:\/\/$2:2380}
-
-cp etcd-systemd-config.template $gendir/$1-etcd.service
+cp etcd-systemd-config.template $gendir/$ip-etcd.service
 
 cd $gendir
 
-sed -i "s/#etcd-host#/$1/g" $1-etcd.service
-sed -i "s/#etcd-ip#/$2/g" $1-etcd.service
-sed -i "s|#data-dir#|$RESTORE_PATH|g" $1-etcd.service
-sed -i "s|#initial-cluster-token#|${cluster_token}|g" $1-etcd.service
-sed -i "s|#initial-cluster#|${cluster}|g" $1-etcd.service
+sed -i "s/#etcd-host#/$host/g" $ip-etcd.service
+sed -i "s/#etcd-ip#/$ip/g" $ip-etcd.service
+sed -i "s|#data-dir#|$restore_path|g" $ip-etcd.service
+sed -i "s|token=#initial-cluster-token#|state=existing|g" $ip-etcd.service
+sed -i "s|#initial-cluster#|$cluster|g" $ip-etcd.service
 
 cd - &> /dev/null
 
-prnt "generated systemd service config file $gendir/$1-etcd.service"
+prnt "generated systemd service config file $gendir/$ip-etcd.service"

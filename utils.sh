@@ -7,9 +7,10 @@ debug() {
   fi
 }
 
+#Need further check for duplicate ip and host name
 normalize_etcd_entries() {
   current_entries=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
-  debug "current entries: $current_entries"
+  debug "normalize_etcd_entries: current entries: $current_entries"
   normalized_entries=''
 
   for entry in $current_entries; do
@@ -18,7 +19,7 @@ normalize_etcd_entries() {
     fi
   done
   normalized_entries=$(echo $normalized_entries | xargs)
-  debug $normalized_entries
+  debug "normalize_etcd_entries: $normalized_entries"
   sed -i "s|$current_entries|$normalized_entries|g" setup.conf
 }
 read_setup() {

@@ -27,7 +27,7 @@ restore_path=${RESTORE_PATH:-$NEXT_DATA_DIR}
 debug "Restoring @location: ${restore_path}"
 
 . restore-snapshot.sh $etcd_snapshot $restore_path $token $master_ip
-. stop-external-etcds.sh
+. stop-external-etcds.sh "stop_only_master"
 . update-conf-embedded-etcd@master.sh $restore_path $token
 . checks/endpoint-liveness.sh 5 3
 . checks/system-pod-state.sh 5 3
