@@ -64,19 +64,31 @@ select setup_option in "${setup_options[@]}"; do
           if [ -z $inaccessibles ]; then
             prnt "Workers ip(s) accessible"
             echo "workers=$valid_ips" >>./extra/setup-kube-cluster.txt
-	    kube_master=$(cat ./extra/setup-kube-cluster.txt | grep master | cut -d'=' -f1)
+            kube_master=$(cat ./extra/setup-kube-cluster.txt | grep master | cut -d'=' -f1)
             prnt "Preparing kubenetes installation on $kube_master $valid_ips"
-	    mv ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
-	    git clone $kube_install_git_repo ../
-	    old_master_in_repo=$(cat ../k8s-easy-install/setup.conf | grep master | cut -d'=' -f2)
-	    old_workers_in_repo=$(cat ../k8s-easy-install/setup.conf | grep workers | cut -d'=' -f2)
-	    sed -i "s/$old_master_in_repo/$kube_master/g" ../k8s-easy-install/setup.conf
-	    sed -i "s/$old_workers_in_repo/$valid_ips/g" ../k8s-easy-install/setup.conf
-	    . checks/confirm-action.sh "Proceed with installtion" "Cancelled"
-	    cd ../k8s-easy-install/
-	    ./launch-cluster.sh
-	    cd - &>/dev/null 
-	    prnt "kubernetes cluster has been installed successfully with master @$kube_master"
+            mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
+            echo "$kube_install_git_repo $kube_install_git_repo"
+            echo "Current folder $(pwd)"
+            cd ..
+            git clone "$kube_install_git_repo"
+
+            old_master_in_repo=$(cat ./k8s-easy-install/setup.conf | grep master | cut -d'=' -f2 | xargs)
+	    echo "old_master_in_repo: $old_master_in_repo"
+            old_workers_in_repo=$(cat ./k8s-easy-install/setup.conf | grep workers | cut -d'=' -f2 | xargs)
+	    echo "old_workers_in_repo: $old_workers_in_repo  $kube_master  $valid_ips"
+            sed -i "s|$old_master_in_repo|$kube_master|g" ./k8s-easy-install/setup.conf
+            sed -i "s|$old_workers_in_repo|$valid_ips|g" ./k8s-easy-install/setup.conf
+	    exit 0
+            cd -
+            . checks/confirm-action.sh "Proceed with installtion" "Cancelled"
+            if [ "$?" -eq 0 ]; then
+              cd ../k8s-easy-install/
+              ./launch-cluster.sh
+              cd - &>/dev/null
+              prnt "kubernetes cluster has been installed successfully with master @$kube_master"
+            else
+              :
+            fi
           else
             err "Not able to access $inaccessibles. Has this machine's SSH key been copied to worker nodes?"
           fi
