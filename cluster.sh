@@ -11,16 +11,20 @@ clusterActions+=(['Refresh view']='refresh-view')
 clusterActions+=(['Snapshot view']='snapshot-view')
 clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
+clusterActions+=(['Setup kubernetes cluster']='setup-kube-cluster')
 clusterActions+=(['External etcd']='external-etcd')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${clusterActions[$option]}" in
       cluster-state)
         . checks/cluster-state.sh
+        ;;
+      setup-kube-cluster)
+        . extra/setup-kube-cluster.sh
         ;;
       external-etcd)
         echo "External etcd"

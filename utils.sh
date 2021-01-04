@@ -38,6 +38,7 @@ read_setup() {
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
       "k8s_master") export k8s_master="$value" ;;
       "etcd_version") export etcd_version="$value" ;;
+      "kube_install_git_repo") export etcd_version="$value" ;;
       "#"*) ;;
     esac
   done <"setup.conf"
@@ -96,6 +97,12 @@ ask() {
 sleep_few_secs() {
   prnt "Waiting few secs..."
   sleep $sleep_time
+}
+
+can_ping_ip() {
+  ip=$1
+  debug "Pinging ip $ip"
+  ping -q -c 3 $ip &>/dev/null || return 1
 }
 
 can_access_ip() {
@@ -160,6 +167,11 @@ is_ip() {
     err "$address is not valid ip"
     return 1
   fi
+}
+#A simple check - revisit if required
+is_host_name_ok(){
+ rx="^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$"
+ [[ $1  =~ $rx ]] && prnt "hostname is ok" || return 1
 }
 
 command_exists() {
@@ -468,8 +480,12 @@ api_server_etcd_url() {
       err "Can not access host($ip) - ignored as etcd server end point!"
     fi
   done
-  export API_SERVER_ETCD_URL=$_etcd_servers
-  prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
+  if [ -z "$_etcd_servers" ]; then
+    err "Wrong etcd server urls - configuration not correct!"
+  else
+    export API_SERVER_ETCD_URL=$_etcd_servers
+    prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
+  fi
 }
 
 etcd_initial_cluster() {

@@ -27,6 +27,7 @@ select option in "${!extEtcdActions[@]}"; do
           err "No etcd node found"
         else
           prnt "Configured etcd servers: $etcd_ips"
+	  . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe" || return 1
           headers='Host,IP,Accessible,Status'
           echo $headers >/tmp/temp_file
           for svr in $etcd_servers; do
@@ -38,7 +39,7 @@ select option in "${!extEtcdActions[@]}"; do
               access='yes'
             fi
             state='N/A'
-            if is_machine_up $ip; then
+            if can_ping_ip $ip; then
               state='Up'
             fi
             node_info=$host,$ip,$access,$state
