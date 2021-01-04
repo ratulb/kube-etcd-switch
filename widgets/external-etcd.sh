@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
-prnt "Manage external etcd"
-declare -A stateActions
-stateActions+=(['Quit']='quit')
-stateActions+=(['Nodes']='nodes')
-stateActions+=(['Add node']='add-node')
-stateActions+=(['Remove node']='remove-node')
-stateActions+=(['Cluster etcd status']='cluster-etcd-status')
-stateActions+=(['Start cluster etcd']='start-cluster-etcd')
-stateActions+=(['Stop cluster etcd']='stop-cluster-etcd')
-stateActions+=(['Refresh view']='refresh-view')
-stateActions+=(['Run setup']='run-setup')
+prnt "Manage external etcd(mee)"
+declare -A extEtcdActions
+extEtcdActions+=(['Quit']='quit')
+extEtcdActions+=(['Nodes']='nodes')
+extEtcdActions+=(['Add node']='add-node')
+extEtcdActions+=(['Remove node']='remove-node')
+extEtcdActions+=(['Etcd cluster status']='etcd-cluster-status')
+extEtcdActions+=(['Start etcd cluster']='start-etcd-cluster')
+extEtcdActions+=(['Stop etcd cluster']='stop-cluster-etcd')
+extEtcdActions+=(['Refresh view']='refresh-view')
+extEtcdActions+=(['Fresh setup']='fresh-setup')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection: \e[0m'
-select option in "${!stateActions[@]}"; do
+PS3=$'\e[01;32mSelection(mee): \e[0m'
+select option in "${!extEtcdActions[@]}"; do
 
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
-    case "${stateActions[$option]}" in
+    case "${extEtcdActions[$option]}" in
       nodes)
         prnt "Nodes"
         read_setup
@@ -109,32 +109,108 @@ select option in "${!stateActions[@]}"; do
             esac
           done
           echo ""
-          PS3=$'\e[01;32mSelection: \e[0m'
+          PS3=$'\e[01;32mSelection(mee): \e[0m'
         else
           err "No saaved state to delete"
         fi
         ;;
-      cluster-etcd-status)
-        if saved_state_exists; then
-          prnt "Restoring state - enter state name: "
-          read fileName
-          if saved_state_exists $fileName; then
-            . restore-state.sh $fileName
-          fi
-        else
-          err "No saved state to restore!"
-        fi
+      etcd-cluster-status)
+        . checks/endpoint-liveness-cluster.sh
         ;;
-      start-cluster-etcd)
+      start-etcd-cluster)
         prnt "Restoring last embedded state"
         . restore-state.sh embedded-up
         ;;
-      stop-cluster-etcd)
+      stop-etcd-cluster)
         prnt "Restoring last external state"
         . restore-state.sh external-up
         ;;
-      run-setup)
-        . checks/system-pod-state.sh
+      fresh-setup)
+        PS3=$'\e[01;32mFresh setup: \e[0m'
+        cat help/ssh-setup.txt
+        echo ""
+        fresh_setup_options=("Proceed with setup" "Cancel" "Done")
+        select fresh_setup_option in "${fresh_setup_options[@]}"; do
+          case "$fresh_setup_option" in
+            'Proceed with setup')
+              if [ -f "$HOME/.ssh/id_rsa.pub" ]; then
+                echo "SSH key already exists"
+                cat help/copy-ssh-key.txt
+              else
+                echo "SHH key not present - would need to be generated."
+                cat help/ssh-key-gen.txt
+                err "ssh-keygen"
+              fi
+              ;;
+            'Cancel')
+              prnt "Cancelled setup"
+              break
+              ;;
+            'Done')
+              echo "Type in the ip addreses of etcd cluster nodes - blank line to complete"
+              rm -f /tmp/cluster-ip-addresses.tmp
+              while read line; do
+                [ -z "$line" ] && break
+                echo "$line" >>/tmp/cluster-ip-addresses.tmp
+              done
+              ip_addresses=$(cat /tmp/cluster-ip-addresses.tmp | tr "\n" " " | xargs)
+              echo $ip_addresses
+
+              if [ -z "$ip_addresses" ]; then
+                err "No ip address entered"
+              else
+                valid_ips=''
+                invalid_ips=''
+                for ip in $ip_addresses; do
+                  if is_ip $ip; then
+                    if [ -z "$valid_ips" ]; then
+                      valid_ips=$ip
+                    else
+                      valid_ips+=" $ip"
+                    fi
+                  else
+                    if [ -z "$invalid_ips" ]; then
+                      invalid_ips=$ip
+                    else
+                      invalid_ips+=" $ip"
+                    fi
+                  fi
+                done
+                if [[ -z "$invalid_ips" ]] && [[ ! -z "$valid_ips" ]]; then
+                  prnt "Checking access to $valid_ips"
+                  accessible_ips=''
+                  not_accessible_ips=''
+                  for valid_ip in $valid_ips; do
+                    if can_access_ip $valid_ips; then
+                      accessible_ips+=" $valid_ip"
+                    else
+                      not_accessible_ips+=" $valid_ip"
+                    fi
+                  done
+                  if [ ! -z "$not_accessible_ips" ]; then
+                    err "Ips not accessible: $not_accessible_ips"
+                    echo "Fix the access issue"
+                  else
+                    prnt "Going to launch setup for cluster ip(s) - $accessible_ips"
+                  fi
+
+                else
+                  err "Are the ip(s) correct?"
+                  [[ -z $invalid_ips ]] || echo $invalid_ips
+                  prnt "Enter again?"
+                fi
+              fi
+
+              rm -f /tmp/cluster-ip-addresses.tmp
+              #break
+              ;;
+
+          esac
+
+        done
+
+        PS3=$'\e[01;32mSelection(mee): \e[0m'
+
         ;;
       restart-runtime)
         PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
@@ -163,7 +239,7 @@ select option in "${!stateActions[@]}"; do
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+        PS3=$'\e[01;32mSelection(mee): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

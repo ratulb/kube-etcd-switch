@@ -1,0 +1,1 @@
+echo "Run the following on a terminal and accept the default value. Once done copy the $HOME/.ssh/id_rsa.pub filecontent to the remote machines' $HOME/.ssh/authorized_keys. Once done select the Done option.
