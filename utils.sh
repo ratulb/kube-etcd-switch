@@ -38,7 +38,7 @@ read_setup() {
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
       "k8s_master") export k8s_master="$value" ;;
       "etcd_version") export etcd_version="$value" ;;
-      "kube_install_git_repo") export etcd_version="$value" ;;
+      "kube_install_git_repo") export kube_install_git_repo="$value" ;;
       "#"*) ;;
     esac
   done <"setup.conf"

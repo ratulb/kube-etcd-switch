@@ -27,7 +27,7 @@ select option in "${!extEtcdActions[@]}"; do
           err "No etcd node found"
         else
           prnt "Configured etcd servers: $etcd_ips"
-	  . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe" || return 1
+          . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe" || return 1
           headers='Host,IP,Accessible,Status'
           echo $headers >/tmp/temp_file
           for svr in $etcd_servers; do
@@ -154,9 +154,11 @@ select option in "${!extEtcdActions[@]}"; do
                 [ -z "$line" ] && break
                 echo "$line" >>/tmp/cluster-ip-addresses.tmp
               done
-              ip_addresses=$(cat /tmp/cluster-ip-addresses.tmp | tr "\n" " " | xargs)
-              echo $ip_addresses
-
+              unset ip_addresses
+              if [ -s /tmp/cluster-ip-addresses.tmp ]; then
+                ip_addresses=$(cat /tmp/cluster-ip-addresses.tmp | tr "\n" " " | xargs)
+                echo $ip_addresses
+              fi
               if [ -z "$ip_addresses" ]; then
                 err "No ip address entered"
               else
