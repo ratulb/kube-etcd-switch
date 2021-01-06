@@ -3,7 +3,7 @@
 #cp /etc/kubernetes/pki/etcd/ca.crt /usr/local/share/ca-certificates/
 #update-ca-certificates --refresh
 
-systemctl daemon-reload
-systemctl enable etcd
-systemctl restart etcd
-systemctl status etcd --no-pager
+sudo systemctl daemon-reload
+sudo systemctl enable etcd
+sudo systemctl restart etcd
+sudo systemctl status etcd --no-pager

@@ -9,14 +9,15 @@ extEtcdActions+=(['Add node']='add-node')
 extEtcdActions+=(['Remove node']='remove-node')
 extEtcdActions+=(['Etcd cluster status']='etcd-cluster-status')
 extEtcdActions+=(['Start etcd cluster']='start-etcd-cluster')
-extEtcdActions+=(['Stop etcd cluster']='stop-cluster-etcd')
+extEtcdActions+=(['Stop etcd cluster']='stop-etcd-cluster')
 extEtcdActions+=(['Refresh view']='refresh-view')
 extEtcdActions+=(['Fresh setup']='fresh-setup')
+extEtcdActions+=(['Cluster view']='cluster-view')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${extEtcdActions[$option]}" in
@@ -73,7 +74,7 @@ select option in "${!extEtcdActions[@]}"; do
             prnt "Updating etcd server configuration"
             node_being_added=$nodeName:$nodeIp
             upsert_etcd_servers $node_being_added
-            #read_setup
+            . admit-etcd-cluster-node.sh $nodeName $nodeIp || prnt "Request parked - cluster is offline or not setup yet"
           else
             err "$nodeIp is not accesible. Has this machine's ssh key been addded to $nodeIp?"
           fi
@@ -81,59 +82,66 @@ select option in "${!extEtcdActions[@]}"; do
         ;;
 
       remove-node)
-        echo "Remove nodes"
-        if saved_state_exists; then
-          PS3="Deleting states - choose option: "
-          delete_options=(All Some Back)
-          select delete_option in "${delete_options[@]}"; do
-            case "$delete_option" in
-              All)
-                echo "Deleting all saved states"
-                delete_saved_states -a
-                break
-                ;;
-              Some)
-                echo "Type in file names - blank line to complete"
-                rm -f /tmp/state_deletions.tmp
-                while read line; do
-                  [ -z "$line" ] && break
-                  echo "$line" >>/tmp/state_deletions.tmp
-                done
-                selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
-                delete_saved_states $selected_for_deletions
-                rm -f /tmp/state_deletions.tmp
-                break
-                ;;
-              Back)
-                break
-                ;;
-            esac
+        prnt "Remove nodes"
+        read_setup
+        if [ ! -z "$etcd_servers" ]; then
+          PS3=$'\e[01;32mChoose one(q to quit): \e[0m'
+          unset etcdHostAndIps
+          declare -a etcdHostAndIps
+          for etcd_node_entry in $etcd_servers; do
+            etcdHostAndIps+=($etcd_node_entry)
           done
-          echo ""
-          PS3=$'\e[01;32mSelection(mee): \e[0m'
+          count=${#etcdHostAndIps[@]}
+          select host_and_ip in "${etcdHostAndIps[@]}"; do
+            if [ "$REPLY" == 'q' ]; then
+              PS3=$'\e[01;32mSelection(mee): \e[0m'
+              break
+            fi
+            if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt "$count" -o "$REPLY" -lt 1 ]; then
+              err "Invalid selection"
+            else
+              echo "Selected $host_and_ip ($REPLY) from removal"
+              echo "Removing etcd node: $host_and_ip"
+              . remove-admitted-node.sh $(echo $host_and_ip | cut -d':' -f2)
+              if [ "$?" -eq 0 ]; then
+                prnt "Removed etcd node($host_and_ip) - updating configuration"
+                current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
+                replacement=$(echo ${current_entries/$host_and_ip/})
+                sed -i "s/$current_entries/$replacement/g" setup.conf
+                read_setup
+                sleep 2
+                script=$(readlink -f "$0")
+                exec "$script"
+              else
+                err "Failed to remove etcd node($selected_ip)"
+              fi
+            fi
+          done
         else
-          err "No saaved state to delete"
+          err "No etcd node to delete"
         fi
+        PS3=$'\e[01;32mSelection(mee): \e[0m'
         ;;
       etcd-cluster-status)
         . checks/endpoint-liveness-cluster.sh
         ;;
       start-etcd-cluster)
-        prnt "Restoring last embedded state"
-        . restore-state.sh embedded-up
+        prnt "Starting etcd cluster"
+        . start-external-etcds.sh
         ;;
       stop-etcd-cluster)
-        prnt "Restoring last external state"
-        . restore-state.sh external-up
+        prnt "Stopping etcd cluster"
+	#print out where they are getting stopped
+        . stop-external-etcds.sh
         ;;
       fresh-setup)
         PS3=$'\e[01;32mFresh setup: \e[0m'
         cat help/ssh-setup.txt
         echo ""
-        fresh_setup_options=("Proceed with setup" "Cancel" "Done")
+        fresh_setup_options=("Start" "Cancel" "Launch")
         select fresh_setup_option in "${fresh_setup_options[@]}"; do
           case "$fresh_setup_option" in
-            'Proceed with setup')
+            'Start')
               if [ -f "$HOME/.ssh/id_rsa.pub" ]; then
                 echo "SSH key already exists"
                 cat help/copy-ssh-key.txt
@@ -147,114 +155,86 @@ select option in "${!extEtcdActions[@]}"; do
               prnt "Cancelled setup"
               break
               ;;
-            'Done')
-              echo "Type in the ip addreses of etcd cluster nodes - blank line to complete"
-              rm -f /tmp/cluster-ip-addresses.tmp
+            'Launch')
+              echo "Type in the host & ip(s)of etcd cluster nodes - blank line to complete"
+              echo "Example: 'server:10.148.15.200'"
+              rm -f /tmp/etcd_host_and_ips.tmp
               while read line; do
                 [ -z "$line" ] && break
-                echo "$line" >>/tmp/cluster-ip-addresses.tmp
+                echo "$line" >>/tmp/etcd_host_and_ips.tmp
               done
-              unset ip_addresses
-              if [ -s /tmp/cluster-ip-addresses.tmp ]; then
-                ip_addresses=$(cat /tmp/cluster-ip-addresses.tmp | tr "\n" " " | xargs)
-                echo $ip_addresses
+              unset etcd_host_and_ips
+              if [ -s /tmp/etcd_host_and_ips.tmp ]; then
+                etcd_host_and_ips=$(cat /tmp/etcd_host_and_ips.tmp | tr "\n" " " | xargs)
+                echo $etcd_host_and_ips
               fi
-              if [ -z "$ip_addresses" ]; then
+              if [ -z "$etcd_host_and_ips" ]; then
                 err "No ip address entered"
               else
-                valid_ips=''
-                invalid_ips=''
-                for ip in $ip_addresses; do
-                  if is_ip $ip; then
-                    if [ -z "$valid_ips" ]; then
-                      valid_ips=$ip
+                unset valid_ips
+                unset invalid_host_or_ips
+                for etcd_host_and_ip in $etcd_host_and_ips; do
+                  ip_part=$(echo $etcd_host_and_ips | cut -d':' -f2)
+                  host_part=$(echo $etcd_host_and_ips | cut -d':' -f1)
+                  if ! is_ip $ip_part || ! is_host_name_ok $host_part; then
+                    if [ -z "$invalid_host_or_ips" ]; then
+                      invalid_host_or_ips=$etcd_host_and_ip
                     else
-                      valid_ips+=" $ip"
+                      invalid_host_or_ips+=" $etcd_host_and_ip"
                     fi
                   else
-                    if [ -z "$invalid_ips" ]; then
-                      invalid_ips=$ip
+                    if [ -z "$valid_ips" ]; then
+                      valid_ips=$ip_part
                     else
-                      invalid_ips+=" $ip"
+                      valid_ips+=" $ip_part"
                     fi
                   fi
                 done
-                if [[ -z "$invalid_ips" ]] && [[ ! -z "$valid_ips" ]]; then
+                if [[ -z "$invalid_host_or_ips" ]] && [[ ! -z "$valid_ips" ]]; then
                   prnt "Checking access to $valid_ips"
-                  accessible_ips=''
                   not_accessible_ips=''
                   for valid_ip in $valid_ips; do
-                    if can_access_ip $valid_ips; then
-                      accessible_ips+=" $valid_ip"
-                    else
+                    if ! can_access_ip $valid_ip; then
                       not_accessible_ips+=" $valid_ip"
                     fi
                   done
-                  if [ ! -z "$not_accessible_ips" ]; then
-                    err "Ips not accessible: $not_accessible_ips"
-                    echo "Fix the access issue"
+                  if [ -z "$not_accessible_ips" ]; then
+                    prnt "Launching cluster for $etcd_host_and_ips"
+                    . setup-etcd-cluster.sh $etcd_host_and_ips
+                    if [ "$?" -eq 0 ]; then
+                      prnt "Successfully setup etcd cluster on $valid_ips"
+                      for entry in $etcd_host_and_ips; do
+                        upsert_etcd_servers $entry
+                      done
+                      debug "Updated etcd server entries"
+                    else
+                      err "Cluster setup failed" && return 1
+                    fi
                   else
-                    prnt "Going to launch setup for cluster ip(s) - $accessible_ips"
+                    err "Ip(s) not accessible: $not_accessible_ips"
                   fi
 
                 else
-                  err "Are the ip(s) correct?"
-                  [[ -z $invalid_ips ]] || echo $invalid_ips
-                  prnt "Enter again?"
+                  err "Incorrect host(s) or ip(s)"
+                  [[ ! -z $invalid_host_or_ips ]] && echo $invalid_host_or_ips
                 fi
               fi
 
-              rm -f /tmp/cluster-ip-addresses.tmp
+              rm -f /tmp/etcd_host_and_ips.tmp
               #break
               ;;
-
-          esac
-
-        done
-
-        PS3=$'\e[01;32mSelection(mee): \e[0m'
-
-        ;;
-      restart-runtime)
-        PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
-        restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
-        select restart_option in "${restart_options[@]}"; do
-          case "$REPLY" in
-            1)
-              . restart-runtime.sh
-              break
-              ;;
-            2)
-              echo "Type in the kube node IPs - blank line to complete: "
-              rm -f /tmp/kube_ips.tmp
-              while read line; do
-                [ -z "$line" ] && break
-                echo "$line" >>/tmp/kube_ips.tmp
-              done
-              kube_ips=$(cat /tmp/kube_ips.tmp | tr "\n" " " | xargs)
-              . restart-runtime.sh $kube_ips
-              rm -f /tmp/kube_ips.tmp
-              break
-              ;;
-            3)
-              break
-              ;;
           esac
         done
-        echo ""
         PS3=$'\e[01;32mSelection(mee): \e[0m'
         ;;
+
       refresh-view)
         script=$(readlink -f "$0")
         exec "$script"
         ;;
-      snapshot-view)
-        script=$(readlink -f "snapshots.sh")
-        exec "$script"
-        ;;
       quit)
         prnt "quit"
-        break
+        break 2
         ;;
       cluster-view)
         script=$(readlink -f "cluster.sh")

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
-prnt "Manage etcd snapshots"
+prnt "Manage etcd snapshots(mes)"
 declare -A snapshotActions
 snapshotActions+=(['Quit']='quit')
 snapshotActions+=(['Refresh view']='refresh-view')
@@ -12,7 +12,7 @@ snapshotActions+=(['List snapshots']='list')
 snapshotActions+=(['State view']='state-view')
 snapshotActions+=(['Cluster view']='cluster-view')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection: \e[0m'
+PS3=$'\e[01;32mSelection(mes): \e[0m'
 select action in "${!snapshotActions[@]}"; do
 
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
@@ -67,7 +67,7 @@ select action in "${!snapshotActions[@]}"; do
             esac
           done
           echo ""
-          PS3=$'\e[01;32mSelection: \e[0m'
+	  PS3=$'\e[01;32mSelection(mes): \e[0m'
         else
           err "No snapshot to delete"
         fi
@@ -75,7 +75,7 @@ select action in "${!snapshotActions[@]}"; do
       restore)
         . widgets/select-and-restore-snapshot.sh
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+	PS3=$'\e[01;32mSelection(mes): \e[0m'
         ;;
       state-view)
         script=$(readlink -f "states.sh")
@@ -118,7 +118,7 @@ select action in "${!snapshotActions[@]}"; do
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+	PS3=$'\e[01;32mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

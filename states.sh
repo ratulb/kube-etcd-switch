@@ -60,7 +60,7 @@ select option in "${!stateActions[@]}"; do
           echo ""
           PS3=$'\e[01;32mSelection: \e[0m'
         else
-          err "No saaved state to delete"
+          err "No saved state to delete"
         fi
         ;;
       restore)

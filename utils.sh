@@ -100,7 +100,7 @@ sleep_few_secs() {
 }
 
 can_ping_ip() {
-  ip=$1
+local  ip=$1
   debug "Pinging ip $ip"
   ping -q -c 3 $ip &>/dev/null || return 1
 }
@@ -121,13 +121,15 @@ upsert_etcd_servers() {
   node_being_added=$1
   old_etcd_servers=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
   old_etcd_servers=$(echo $old_etcd_servers | xargs)
-  if [[ $old_etcd_servers == *"$node_being_added"* ]]; then
+  if [[ "$old_etcd_servers" == *"$node_being_added"* ]]; then
     debug "Node being added is already present in system configuration!"
   else
     debug "Appending node being added $node_being_added"
     replacement="$old_etcd_servers $node_being_added"
+    replacement=$(echo $replacement | xargs)
     debug "The replacement is: $replacement"
-    sed -i "s/$old_etcd_servers/$replacement/g" setup.conf
+    #sed -i "s/$old_etcd_servers/$replacement/g" setup.conf
+    sed -i "s/etcd_servers=.*/etcd_servers=$replacement/g" setup.conf
     prnt "etcd server configuration is updated with $node_being_added"
   fi
   read_setup
@@ -484,7 +486,7 @@ api_server_etcd_url() {
     err "Wrong etcd server urls - configuration not correct!"
   else
     export API_SERVER_ETCD_URL=$_etcd_servers
-    prnt "etcd server url for api server: $API_SERVER_ETCD_URL"
+    debug "etcd server url for api server: $API_SERVER_ETCD_URL"
   fi
 }
 

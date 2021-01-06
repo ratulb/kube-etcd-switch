@@ -13,10 +13,12 @@ clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
 clusterActions+=(['Setup kubernetes cluster']='setup-kube-cluster')
 clusterActions+=(['External etcd']='external-etcd')
+clusterActions+=(['Stop embedded etcd']='stop-embedded-etcd')
+clusterActions+=(['Start embedded etcd']='start-embedded-etcd')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 12 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${clusterActions[$option]}" in
@@ -25,6 +27,12 @@ select option in "${!clusterActions[@]}"; do
         ;;
       setup-kube-cluster)
         . extra/setup-kube-cluster.sh
+        ;;
+	stop-embedded-etcd)
+        . stop-embedded-etcd.sh
+        ;;
+	start-embedded-etcd)
+        . start-embedded-etcd.sh
         ;;
       external-etcd)
         echo "External etcd"

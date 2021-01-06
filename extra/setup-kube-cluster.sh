@@ -23,7 +23,7 @@ select setup_option in "${setup_options[@]}"; do
       fi
       ;;
     "Worker ip(s)")
-      echo "Type in worker ips(node:1.1.1.1 format) - blank line to complete"
+      echo "Type in worker ips - blank line to complete"
       echo "For single node cluster workers can be skipped!"
       rm -f /tmp/workers.tmp
       while read line; do
@@ -68,8 +68,10 @@ select setup_option in "${setup_options[@]}"; do
             if [ "$?" -eq 0 ]; then
               cd ../k8s-easy-install/ &>/dev/null
               ./launch-cluster.sh
+              if [ "$?" -eq 0 ]; then
+                prnt "kubernetes cluster has been installed successfully with master @$kube_master"
+              fi
               cd - &>/dev/null
-              prnt "kubernetes cluster has been installed successfully with master @$kube_master"
             else
               :
             fi

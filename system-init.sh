@@ -108,5 +108,7 @@ else
     return 1
   fi
 fi
+. gen-cert.sh $(hostname) $this_host_ip
+cp $gendir/$(hostname){-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/ 
 
 kubectl -n kube-system get pod && prnt "\nkubectl has been setup" || "Some problem occured!"

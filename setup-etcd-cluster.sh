@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 . utils.sh
 . checks/ca-cert-existence.sh
-. checks/ssh-access.sh
+
+servers=$etcd_servers
+if [ "$#" -ge 0 ]; then
+  servers=$@
+fi
+
+. checks/ssh-access.sh $servers
 
 #Generate certs/systemd/install etcd/create remote dirs/copy certs for etcd servers
-. gen-certs.sh
+. gen-certs.sh $servers
 
-for svr in $etcd_servers; do
-  pair=(${svr//:/ })
-  host=${pair[0]}
-  ip=${pair[1]}
+for host_and_ip in $servers; do
+  host=$(echo $host_and_ip | cut -d':' -f1)
+  ip=$(echo $host_and_ip | cut -d':' -f2)
 
   if [ "$ip" = $this_host_ip ]; then
     prnt "Installing etcd/creating default directories on localhost ($ip)"
@@ -28,4 +33,4 @@ for svr in $etcd_servers; do
   rm prepare-etcd-dirs.script.tmp
 done
 
-prnt "Etcd cluster has been setup successfully on $etcd_ips!"
+prnt "Etcd cluster has been setup successfully on servers."

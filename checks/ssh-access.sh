@@ -7,6 +7,10 @@ if [[ ! $etcd_ips =~ "$master_ip" ]]; then
   server_ips+=" $master_ip"
 fi
 
+if [ "$#" -gt 0 ]; then
+  servers=$@
+fi
+
 prnt "Make sure SSH public key has been copied to remote servers!"
 for ip in $server_ips; do
   prnt "Checking access to $ip"
