@@ -13,6 +13,7 @@ extEtcdActions+=(['Stop etcd cluster']='stop-etcd-cluster')
 extEtcdActions+=(['Refresh view']='refresh-view')
 extEtcdActions+=(['Fresh setup']='fresh-setup')
 extEtcdActions+=(['Cluster view']='cluster-view')
+extEtcdActions+=(['Probe endpoints']='probe-endpoints')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
@@ -74,9 +75,9 @@ select option in "${!extEtcdActions[@]}"; do
             if [ "$?" -eq 0 ]; then
               prnt "Updating etcd server configuration"
               node_being_added=$nodeName:$nodeIp
-              upsert_etcd_servers $node_being_added
+              upsert_etcd_server_list $node_being_added
               prnt "Node($nodeIp) has been added"
-	      . synch-etcd-endpoints.sh
+              . synch-etcd-endpoints.sh
             else
               err "Failed to add node($nodeIp)"
             fi
@@ -85,7 +86,10 @@ select option in "${!extEtcdActions[@]}"; do
           fi
         fi
         ;;
-
+      probe-endpoints)
+        probe_response=$(. checks/endpoint-probe.sh | sed '/^[[:space:]]*$/d')
+        echo "$probe_response"
+        ;;
       remove-node)
         prnt "Remove nodes"
         read_setup
@@ -105,21 +109,22 @@ select option in "${!extEtcdActions[@]}"; do
             if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt "$count" -o "$REPLY" -lt 1 ]; then
               err "Invalid selection"
             else
-              echo "Selected $host_and_ip ($REPLY) from removal"
+              echo "Selected $host_and_ip ($REPLY) for removal"
               echo "Removing etcd node: $host_and_ip"
-              . remove-admitted-node.sh $(echo $host_and_ip | cut -d':' -f2)
+              . remove-admitted-node.sh $host_and_ip
               if [ "$?" -eq 0 ]; then
                 prnt "Removed etcd node($host_and_ip) - updating configuration"
-                current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
-                replacement=$(echo ${current_entries/$host_and_ip/})
-                sed -i "s/$current_entries/$replacement/g" setup.conf
+                #current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
+                #replacement=$(echo ${current_entries/$host_and_ip/})
+                #sed -i "s/$current_entries/$replacement/g" setup.conf
+                prune_etcd_server_list $host_and_ip
                 read_setup
-		. synch-etcd-endpoints.sh
+                . synch-etcd-endpoints.sh
                 sleep 10
                 script=$(readlink -f "$0")
                 exec "$script"
               else
-                err "Failed to remove etcd node($selected_ip)"
+                err "Failed to remove etcd node($host_and_ip)"
               fi
             fi
           done
@@ -209,7 +214,7 @@ select option in "${!extEtcdActions[@]}"; do
                     if [ "$?" -eq 0 ]; then
                       prnt "Successfully setup etcd cluster on $valid_ips"
                       for entry in $etcd_host_and_ips; do
-                        upsert_etcd_servers $entry
+                        upsert_etcd_server_list $entry
                       done
                       prnt "Updated etcd server entries with $etcd_host_and_ips"
                     else

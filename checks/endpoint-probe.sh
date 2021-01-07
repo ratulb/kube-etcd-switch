@@ -5,9 +5,7 @@ if [ "$#" -gt 0 ]; then
 else
   probe_endpoints
 fi
-
 if [ -z "$per_endpoint" ]; then
-  echo ""
   ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
     --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \

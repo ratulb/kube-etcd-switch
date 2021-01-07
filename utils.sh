@@ -118,11 +118,11 @@ is_master_ip_set() {
   [ ! -z "$master_ip" ] && is_ip $master_ip
 }
 
-upsert_etcd_servers() {
-  node_being_added=$1
-  old_etcd_servers=$(cat setup.conf | grep etcd_servers | cut -d '=' -f 2)
+upsert_etcd_server_list() {
+  local node_being_added=$1
+  local old_etcd_servers=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2)
   old_etcd_servers=$(echo $old_etcd_servers | xargs)
-  if [[ "$old_etcd_servers" == *"$node_being_added"* ]]; then
+  if [[ "$old_etcd_servers" = *"$node_being_added"* ]]; then
     debug "Node being added is already present in system configuration!"
   else
     debug "Appending node being added $node_being_added"
@@ -133,6 +133,21 @@ upsert_etcd_servers() {
     debug "etcd server configuration is updated with $node_being_added"
   fi
   read_setup
+}
+prune_etcd_server_list() {
+  [[ -z "$etcd_servers" ]] && return 0
+  nodes_being_deleted=$@
+  nodes_being_deleted=$(echo $nodes_being_deleted | xargs)
+  local old_etcd_servers=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2)
+  old_etcd_servers=$(echo $old_etcd_servers | xargs)
+  new_server_list=''
+  for node in $old_etcd_servers; do
+    if ! [[ "$nodes_being_deleted" = *"$node"* ]]; then
+      new_server_list+=" $node"
+    fi
+  done
+  new_server_list=$(echo $new_server_list | xargs)
+  sed -i "s/etcd_servers=.*/etcd_servers=$new_server_list/g" setup.conf
 }
 
 #Launch busybox container called debug
@@ -482,13 +497,15 @@ api_server_etcd_url() {
       err "Can not access host($ip) - ignored as etcd server end point!"
     fi
   done
+  _etcd_servers=$(echo $_etcd_servers | xargs)
   if [ -z "$_etcd_servers" ]; then
-    err "Wrong etcd server urls - configuration not correct!"
+    err "API server etcd endpoints empty"
   else
     export API_SERVER_ETCD_URL=$_etcd_servers
+    echo ""
     debug "etcd server url for api server: $API_SERVER_ETCD_URL"
   fi
-  
+
 }
 
 etcd_initial_cluster() {
@@ -632,19 +649,28 @@ function trimString() {
   sed 's,^[[:blank:]]*,,' <<<"${string}" | sed 's,[[:blank:]]*$,,'
 }
 
-probe_endpoints() {
-  api_server_etcd_url
+api_server_pointing_at() {
   master_pointees=''
   if [ ! -z "$master_ip" ]; then
     if [ "$this_host_ip" = "$master_ip" ]; then
-      master_pointees=$(ssh $master_ip cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
+      master_pointees=$(
+        ssh $master_ip cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cu
+        t -d'=' -f2
+      )
     else
       master_pointees=$(sudo -u $usr ssh $master_ip \
         "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
     fi
+    master_pointees=$(echo $master_pointees | xargs)
+    debug "kubernetes master is pointing at: $master_pointees"
+    export API_SERVER_POINTING_AT="$master_pointees"
+  else
+    err "kube master_ip not set"
   fi
+}
 
-  debug "etcd urls from master($master_ip) probe: $master_pointees"
+probe_endpoints() {
+  api_server_etcd_url
   [ "$#" -gt 0 ] && debug "extra endpoint(s): $@" || debug "No extra endpoint(s) are provided"
 
   arg_endpoints=''
@@ -665,9 +691,8 @@ probe_endpoints() {
   done
 
   etcd_server_endpoints=$(echo $API_SERVER_ETCD_URL | xargs)
-  master_pointees=$(echo $master_pointees | xargs)
 
-  endpoints_combined="$arg_endpoints $etcd_server_endpoints $master_pointees"
+  endpoints_combined="$arg_endpoints $etcd_server_endpoints"
   endpoints_combined=$(echo $endpoints_combined | tr ',' ' ')
   normalized_endpoints=''
 
@@ -687,8 +712,6 @@ probe_endpoints() {
 
   debug "Endpoints normalized: $normalized_endpoints"
   debug "etcd_server endpoint entries: $etcd_server_endpoints"
-  debug "kubernetes master is pointing at: $master_pointees"
-  export API_SERVER_POINTING_AT="$master_pointees"
 
   normalized_endpoints=$(echo $normalized_endpoints | tr ' ' ',')
   export PROBE_ENDPOINTS="$normalized_endpoints"

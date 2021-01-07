@@ -3,7 +3,6 @@
 command_exists kubectl
 unset cluster_state
 unset cluster_desc
-probe_endpoints
 if can_ping_ip $master_ip; then
   if can_access_ip $master_ip; then
     if [ ! -z "$debug" ]; then
@@ -54,6 +53,7 @@ if can_ping_ip $master_ip; then
 else
   err "Could not ping kube cluster master - wrong master($master_ip) or system has not been initialized yet."
 fi
+api_server_pointing_at
 if [ -z "$API_SERVER_POINTING_AT" ]; then
   err "No API server etcd endpoint"
 else
