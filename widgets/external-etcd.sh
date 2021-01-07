@@ -76,7 +76,7 @@ select option in "${!extEtcdActions[@]}"; do
               node_being_added=$nodeName:$nodeIp
               upsert_etcd_servers $node_being_added
               prnt "Node($nodeIp) has been added"
-              #TODO update kube-apiserver.yaml
+	      . synch-etcd-endpoints.sh
             else
               err "Failed to add node($nodeIp)"
             fi
@@ -113,9 +113,9 @@ select option in "${!extEtcdActions[@]}"; do
                 current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
                 replacement=$(echo ${current_entries/$host_and_ip/})
                 sed -i "s/$current_entries/$replacement/g" setup.conf
-                #TODO update kube-apiserver.yaml
                 read_setup
-                sleep 30
+		. synch-etcd-endpoints.sh
+                sleep 10
                 script=$(readlink -f "$0")
                 exec "$script"
               else
