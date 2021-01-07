@@ -26,4 +26,4 @@ else
   sudo -u $usr scp kube.draft $master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml
 fi
 
-
+rm -f kube.draft

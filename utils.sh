@@ -488,6 +488,7 @@ api_server_etcd_url() {
     export API_SERVER_ETCD_URL=$_etcd_servers
     debug "etcd server url for api server: $API_SERVER_ETCD_URL"
   fi
+  
 }
 
 etcd_initial_cluster() {
@@ -629,4 +630,65 @@ function isEmptyString() {
 function trimString() {
   local -r string="${1}"
   sed 's,^[[:blank:]]*,,' <<<"${string}" | sed 's,[[:blank:]]*$,,'
+}
+
+probe_endpoints() {
+  api_server_etcd_url
+  master_pointees=''
+  if [ ! -z "$master_ip" ]; then
+    if [ "$this_host_ip" = "$master_ip" ]; then
+      master_pointees=$(ssh $master_ip cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
+    else
+      master_pointees=$(sudo -u $usr ssh $master_ip \
+        "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
+    fi
+  fi
+
+  debug "etcd urls from master($master_ip) probe: $master_pointees"
+  [ "$#" -gt 0 ] && debug "extra endpoint(s): $@" || debug "No extra endpoint(s) are provided"
+
+  arg_endpoints=''
+  if [ "$#" -lt 3 ]; then
+    extra_endpoints=$@
+  else
+    shift
+    shift
+    extra_endpoints=$@
+  fi
+  for ep in $extra_endpoints; do
+    ep=$(echo $ep | xargs)
+    if [ -z $arg_endpoints ]; then
+      arg_endpoints=https://$ep:2379
+    else
+      arg_endpoints+=,https://$ep:2379
+    fi
+  done
+
+  etcd_server_endpoints=$(echo $API_SERVER_ETCD_URL | xargs)
+  master_pointees=$(echo $master_pointees | xargs)
+
+  endpoints_combined="$arg_endpoints $etcd_server_endpoints $master_pointees"
+  endpoints_combined=$(echo $endpoints_combined | tr ',' ' ')
+  normalized_endpoints=''
+
+  for entry in $endpoints_combined; do
+    if ! [[ "$normalized_endpoints" =~ "$entry" ]]; then
+      if [ -z "$normalized_endpoints" ]; then
+        normalized_endpoints=$entry
+      else
+        normalized_endpoints+=" $entry"
+      fi
+    fi
+  done
+
+  if [ -z "$normalized_endpoints" ]; then
+    err "Empty end point list" && return 1
+  fi
+
+  debug "Endpoints normalized: $normalized_endpoints"
+  debug "etcd_server endpoint entries: $etcd_server_endpoints"
+  debug "kubernetes master is pointing at: $master_pointees"
+
+  normalized_endpoints=$(echo $normalized_endpoints | tr ' ' ',')
+  export PROBE_ENDPOINTS="$normalized_endpoints"
 }

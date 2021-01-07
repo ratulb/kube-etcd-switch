@@ -42,28 +42,29 @@ if is_master_ip_set; then
           ;;
         'Edit master ip')
           echo "Edit master ip: "
-          prnt "Enter master ip: "
-          read address
-          if is_ip $address; then
-            prnt "Checking access to $address"
-            if can_access_ip $address; then
-              k8s_master_addr=k8s_master=$address
-              if [ ! -z "$debug" ]; then
-                cat setup.conf
-                sed -i "/k8s_master/c $k8s_master_addr" setup.conf
-                cat setup.conf
-              else
-                sed -i "/k8s_master/c $k8s_master_addr" setup.conf
-              fi
-              prnt "Master ip has been updated"
-              read_setup
+          unset address
+          prnt "Master ip(q - cancel)"
+          while [[ -z "$address" ]] || ! is_ip $address; do
+            read -p 'master ip: ' address
+            [ "$address" = "q" ] && break
+          done
+
+          prnt "Checking access to $address"
+          if can_access_ip $address; then
+            k8s_master_addr=k8s_master=$address
+            if [ ! -z "$debug" ]; then
+              cat setup.conf
+              sed -i "s/k8s_master=.*/$k8s_master_addr/g" setup.conf
+              cat setup.conf
             else
-              err "Can not access $address. Has this machine's ssh key been copied to $address?"
+              sed -i "s/k8s_master=.*/$k8s_master_addr/g" setup.conf
             fi
-            #break
+            prnt "Master ip has been updated"
+            read_setup
           else
-            err "Not a valid address"
+            err "Can not access $address. Has this machine's ssh key been copied to $address?"
           fi
+          #break
           ;;
       esac
     fi

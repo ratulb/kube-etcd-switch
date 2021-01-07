@@ -54,7 +54,7 @@ if can_ping_ip $master_ip; then
       debug "cluster state: $cluster_state"
     fi
   else
-    err "Can not access $master - wrong master or system has not been initialized yet."
+    err "Can not access $master_ip - wrong master or system has not been initialized yet."
   fi
 
 else

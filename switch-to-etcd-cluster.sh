@@ -16,3 +16,4 @@ fi
 . stop-embedded-etcd.sh
 . start-external-etcds.sh
 
+rm -f kube.draft

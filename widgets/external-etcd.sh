@@ -69,12 +69,17 @@ select option in "${!extEtcdActions[@]}"; do
         if ! [[ -z "$nodeIp" ]] && [ "$nodeIp" != "q" ]; then
           prnt "Checking access to $nodeIp..."
           if can_access_ip $nodeIp; then
-            prnt "Setting up etcd on $nodeName($nodeIp)"
-            . setup-etcd@node.sh $nodeName $nodeIp
-            prnt "Updating etcd server configuration"
-            node_being_added=$nodeName:$nodeIp
-            upsert_etcd_servers $node_being_added
-            . admit-etcd-cluster-node.sh $nodeName $nodeIp || prnt "Request parked - cluster is offline or not setup yet"
+            prnt "Adding node $nodeName($nodeIp)"
+            . admit-etcd-cluster-node.sh $nodeName $nodeIp
+            if [ "$?" -eq 0 ]; then
+              prnt "Updating etcd server configuration"
+              node_being_added=$nodeName:$nodeIp
+              upsert_etcd_servers $node_being_added
+              prnt "Node($nodeIp) has been added"
+              #TODO update kube-apiserver.yaml
+            else
+              err "Failed to add node($nodeIp)"
+            fi
           else
             err "$nodeIp is not accesible. Has this machine's ssh key been addded to $nodeIp?"
           fi
@@ -108,8 +113,9 @@ select option in "${!extEtcdActions[@]}"; do
                 current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
                 replacement=$(echo ${current_entries/$host_and_ip/})
                 sed -i "s/$current_entries/$replacement/g" setup.conf
+                #TODO update kube-apiserver.yaml
                 read_setup
-                sleep 2
+                sleep 30
                 script=$(readlink -f "$0")
                 exec "$script"
               else
@@ -131,7 +137,7 @@ select option in "${!extEtcdActions[@]}"; do
         ;;
       stop-etcd-cluster)
         prnt "Stopping etcd cluster"
-	#print out where they are getting stopped
+        #print out where they are getting stopped
         . stop-external-etcds.sh
         ;;
       fresh-setup)
@@ -166,7 +172,6 @@ select option in "${!extEtcdActions[@]}"; do
               unset etcd_host_and_ips
               if [ -s /tmp/etcd_host_and_ips.tmp ]; then
                 etcd_host_and_ips=$(cat /tmp/etcd_host_and_ips.tmp | tr "\n" " " | xargs)
-                echo $etcd_host_and_ips
               fi
               if [ -z "$etcd_host_and_ips" ]; then
                 err "No ip address entered"
@@ -174,8 +179,8 @@ select option in "${!extEtcdActions[@]}"; do
                 unset valid_ips
                 unset invalid_host_or_ips
                 for etcd_host_and_ip in $etcd_host_and_ips; do
-                  ip_part=$(echo $etcd_host_and_ips | cut -d':' -f2)
-                  host_part=$(echo $etcd_host_and_ips | cut -d':' -f1)
+                  ip_part=$(echo $etcd_host_and_ip | cut -d':' -f2)
+                  host_part=$(echo $etcd_host_and_ip | cut -d':' -f1)
                   if ! is_ip $ip_part || ! is_host_name_ok $host_part; then
                     if [ -z "$invalid_host_or_ips" ]; then
                       invalid_host_or_ips=$etcd_host_and_ip
@@ -206,7 +211,7 @@ select option in "${!extEtcdActions[@]}"; do
                       for entry in $etcd_host_and_ips; do
                         upsert_etcd_servers $entry
                       done
-                      debug "Updated etcd server entries"
+                      prnt "Updated etcd server entries with $etcd_host_and_ips"
                     else
                       err "Cluster setup failed" && return 1
                     fi
@@ -240,6 +245,8 @@ select option in "${!extEtcdActions[@]}"; do
         script=$(readlink -f "cluster.sh")
         exec "$script"
         ;;
+      *) ;;
+
     esac
   fi
 done
