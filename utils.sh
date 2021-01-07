@@ -688,6 +688,7 @@ probe_endpoints() {
   debug "Endpoints normalized: $normalized_endpoints"
   debug "etcd_server endpoint entries: $etcd_server_endpoints"
   debug "kubernetes master is pointing at: $master_pointees"
+  export API_SERVER_POINTING_AT="$master_pointees"
 
   normalized_endpoints=$(echo $normalized_endpoints | tr ' ' ',')
   export PROBE_ENDPOINTS="$normalized_endpoints"
