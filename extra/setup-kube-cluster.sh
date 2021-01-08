@@ -67,7 +67,11 @@ select setup_option in "${setup_options[@]}"; do
             rm -rf ../k8s-easy-install.backup &>/dev/null
             mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
             cd ..
-            git clone "$kube_install_git_repo"
+            git --version &> /dev/null
+            if [ "$?" -ne 0 ]; then
+              apt install -y git &> /dev/null
+            fi
+            git clone "$kube_install_git_repo" &>/dev/null
             cd - &>/dev/null
             kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
             kube_workers=$(cat ./extra/setup-kube-cluster-workers.txt | grep workers | cut -d'=' -f2)
@@ -106,7 +110,11 @@ select setup_option in "${setup_options[@]}"; do
             rm -rf ../k8s-easy-install.backup &>/dev/null
             mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
             cd ..
-            git clone "$kube_install_git_repo"
+            git --version &> /dev/null
+            if [ "$?" -ne 0 ]; then
+              apt install -y git &> /dev/null
+            fi
+            git clone "$kube_install_git_repo" &>/dev/null
             cd - &>/dev/null
             kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
             sed -i "s/master=.*/master=$kube_master/g" ../k8s-easy-install/setup.conf
