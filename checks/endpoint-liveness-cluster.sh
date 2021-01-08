@@ -15,10 +15,10 @@ if [ $# = 0 ]; then
       --endpoints=$API_SERVER_ETCD_URL member list
   fi
   if [ ! $? = 0 ]; then
-    echo -e "\e[31metcd endpoint list failed - can not proceed!\e[0m"
-    exit 1
+    err "etcd endpoint list failed - can not proceed"
+    return 1
   fi
-  echo -e "\e[1;42metcd endpoint is up.\e[0m"
+  prnt "etcd endpoint is up"
 else
   i=$1
   secs=$2
@@ -30,7 +30,6 @@ else
         --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
         --endpoints=$API_SERVER_ETCD_URL member list 2>/dev/null
     else
-
       ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
         --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
         --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
@@ -39,18 +38,18 @@ else
 
     status=$?
     if [ "$status" = 0 ]; then
-      echo -e "\e[1;42metcd endpoint is up.\e[0m"
+      prnt "etcd endpoint is up"
     else
-      echo -e "\e[31metcd endpoint is not up yet - would again after $secs seconds!\e[0m"
+      err "etcd endpoint is not up yet - would again after $secs seconds"
       sleep $secs
       i=$((i - 1))
     fi
   done
   if [ "$status" = 0 ]; then
     echo ""
-    #echo -e "\e[1;42metcd endpoint is up now.\e[0m"
+    #prnt "etcd endpoint is up now"
   else
-    echo -e "\e[31metcd endpoint list failed after $1 tries.\e[0m"
-    exit 1
+    err "etcd endpoint list failed after $1 tries"
+    return 1
   fi
 fi

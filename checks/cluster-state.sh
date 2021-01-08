@@ -23,6 +23,8 @@ if can_ping_ip $master_ip; then
 
     if [ "$cluster_up" = 0 -a "$etcd_yaml_present" = 0 ]; then
       state_desc="Cluster is running on embedded etcd"
+      prnt "$state_desc"
+      export $state_desc
       export cluster_state=embedded-up
     fi
 

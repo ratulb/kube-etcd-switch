@@ -100,6 +100,9 @@ sleep_few_secs() {
 }
 
 can_ping_ip() {
+  if [ "$1" = "$this_host_ip" ]; then
+	  return 0
+  fi
   local ip=$1
   debug "Pinging ip $ip"
   ping -q -c 3 $ip &>/dev/null || return 1
@@ -652,10 +655,7 @@ api_server_pointing_at() {
   master_pointees=''
   if [ ! -z "$master_ip" ]; then
     if [ "$this_host_ip" = "$master_ip" ]; then
-      master_pointees=$(
-        ssh $master_ip cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cu
-        t -d'=' -f2
-      )
+      master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
     else
       master_pointees=$(sudo -u $usr ssh $master_ip \
         "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")

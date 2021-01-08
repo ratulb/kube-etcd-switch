@@ -30,6 +30,7 @@ select option in "${!clusterActions[@]}"; do
         PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;
       stop-embedded-etcd)
+	 prnt "Stopping embedded etcd"
         . stop-embedded-etcd.sh
         ;;
       start-embedded-etcd)
@@ -40,7 +41,7 @@ select option in "${!clusterActions[@]}"; do
         . widgets/external-etcd.sh
         ;;
       system-init)
-        . checks/cluster-state.sh &>/dev/null
+        . checks/cluster-state.sh 
         if [ "$cluster_state" = "external-up" ]; then
           warn "System init will fail when cluster is running on external etcd!"
           return 1

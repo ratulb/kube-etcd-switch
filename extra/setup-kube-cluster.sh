@@ -95,29 +95,36 @@ select setup_option in "${setup_options[@]}"; do
         fi
       else
         #PS3=$'\e[01;32mChoose option: \e[0m'
-        prnt "Selected single node cluster - with cluster master($masterIp)"
-        . checks/confirm-action.sh "Proceed with installtion(y)" "Cancelled"
-        if [ "$?" -eq 0 ]; then
-          echo ""
-          prnt "Preparing kubenetes installation on $masterIp"
-          rm -rf ../k8s-easy-install.backup &>/dev/null
-          mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
-          cd ..
-          git clone "$kube_install_git_repo"
-          cd - &>/dev/null
-          kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
-          sed -i "s/master=.*/master=$kube_master/g" ../k8s-easy-install/setup.conf
-          sed -i "s/workers=.*/workers=/g" ../k8s-easy-install/setup.conf
-          cd ../k8s-easy-install/ &>/dev/null
-          ./launch-cluster.sh
+        echo
+        if [ ! -z "$masterIp" ]; then
+
+          prnt "Selected single node cluster - with cluster master($masterIp)"
+          . checks/confirm-action.sh "Proceed with installtion(y)" "Cancelled"
           if [ "$?" -eq 0 ]; then
-            prnt "kubernetes cluster has been installed successfully with master @$kube_master"
+            echo ""
+            prnt "Preparing kubenetes installation on $masterIp"
+            rm -rf ../k8s-easy-install.backup &>/dev/null
+            mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
+            cd ..
+            git clone "$kube_install_git_repo"
+            cd - &>/dev/null
+            kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
+            sed -i "s/master=.*/master=$kube_master/g" ../k8s-easy-install/setup.conf
+            sed -i "s/workers=.*/workers=/g" ../k8s-easy-install/setup.conf
+            cd ../k8s-easy-install/ &>/dev/null
+            ./launch-cluster.sh
+            if [ "$?" -eq 0 ]; then
+              prnt "kubernetes cluster has been installed successfully with master @$kube_master"
+            fi
+            cd - &>/dev/null
+          else
+            unset masterIp
+            unset kube_master
+
           fi
-          cd - &>/dev/null
         else
           :
         fi
-
       fi
       ;;
     'Cancel')

@@ -68,21 +68,25 @@ select option in "${!extEtcdActions[@]}"; do
           done
         fi
         if ! [[ -z "$nodeIp" ]] && [ "$nodeIp" != "q" ]; then
-          prnt "Checking access to $nodeIp..."
-          if can_access_ip $nodeIp; then
-            prnt "Adding node $nodeName($nodeIp)"
-            . admit-etcd-cluster-node.sh $nodeName $nodeIp
-            if [ "$?" -eq 0 ]; then
-              prnt "Updating etcd server configuration"
-              node_being_added=$nodeName:$nodeIp
-              upsert_etcd_server_list $node_being_added
-              prnt "Node($nodeIp) has been added"
-              . synch-etcd-endpoints.sh
-            else
-              err "Failed to add node($nodeIp)"
-            fi
+          if [ "$nodeIp" = "127.0.0.1" ]; then
+            err "loopback ip not allowed"
           else
-            err "$nodeIp is not accesible. Has this machine's ssh key been addded to $nodeIp?"
+            prnt "Checking access to $nodeIp..."
+            if can_access_ip $nodeIp; then
+              prnt "Adding node $nodeName($nodeIp)"
+              . admit-etcd-cluster-node.sh $nodeName $nodeIp
+              if [ "$?" -eq 0 ]; then
+                prnt "Updating etcd server configuration"
+                node_being_added=$nodeName:$nodeIp
+                upsert_etcd_server_list $node_being_added
+                prnt "Node($nodeIp) has been added"
+                . synch-etcd-endpoints.sh
+              else
+                err "Failed to add node($nodeIp)"
+              fi
+            else
+              err "$nodeIp is not accesible. Has this machine's ssh key been addded to $nodeIp?"
+            fi
           fi
         fi
         ;;
