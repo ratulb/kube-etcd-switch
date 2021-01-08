@@ -18,7 +18,7 @@ re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 11 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${extEtcdActions[$option]}" in

@@ -206,7 +206,7 @@ check_file_existence() {
     if [ "$host" = $this_host_ip ]; then
       if [ ! -s $f ]; then
         if [ ! -z "$debug" ]; then
-          err "File existence check failed for $f @host($host)"
+          err "File existence check failed for $f at localhost"
         fi
         return 1
       fi
@@ -224,7 +224,7 @@ check_file_existence() {
 }
 
 check_system_init_reqrmnts_met() {
-  required_files="/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/manifests/kube-apiserver.yaml ~/.kube/config"
+  required_files="/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/manifests/kube-apiserver.yaml $HOME/.kube/config"
   if [ -z "$2" ]; then
     local required_files="$required_files /etc/kubernetes/manifests/etcd.yaml"
   fi
@@ -234,7 +234,7 @@ check_system_init_reqrmnts_met() {
 check_if_etcd_installed() {
   #required_files="/usr/local/bin/etcd /usr/local/bin/etcdctl /etc/systemd/system/etcd.service"
   local required_files="/usr/local/bin/etcd /usr/local/bin/etcdctl"
-  check_file_existence $1 $required_files || return 1
+  #check_file_existence $1 $required_files || return 1
 }
 
 gen_token() {
