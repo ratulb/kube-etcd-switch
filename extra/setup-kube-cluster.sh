@@ -54,7 +54,7 @@ select setup_option in "${setup_options[@]}"; do
         done
         echo "valid worker ips: $valid_worker_ips"
         if [ -z $invalid_worker_ips ]; then
-          prnt "Checking access to $valid_ips ..."
+          prnt "Checking access to $valid_worker_ips ..."
           unset inaccessibles
           for valid_worker_ip in $valid_worker_ips; do
             if ! can_access_ip $valid_worker_ip; then
@@ -63,7 +63,9 @@ select setup_option in "${setup_options[@]}"; do
           done
           if [[ -z $inaccessibles ]]; then
             echo "workers=$valid_worker_ips" >./extra/setup-kube-cluster-workers.txt
-            prnt "Preparing kubenetes installation on $kube_master $valid_ips"
+            kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
+            kube_workers=$(cat ./extra/setup-kube-cluster-workers.txt | grep workers | cut -d'=' -f2)
+            prnt "Preparing kubenetes installation on $kube_master $kube_workers"
             rm -rf ../k8s-easy-install.backup &>/dev/null
             mv -f ../k8s-easy-install ../k8s-easy-install.backup &>/dev/null
             cd ..
@@ -73,9 +75,6 @@ select setup_option in "${setup_options[@]}"; do
             fi
             git clone "$kube_install_git_repo" &>/dev/null
             cd - &>/dev/null
-            kube_master=$(cat ./extra/setup-kube-cluster-master.txt | grep master | cut -d'=' -f2)
-            kube_workers=$(cat ./extra/setup-kube-cluster-workers.txt | grep workers | cut -d'=' -f2)
-
             sed -i "s/master=.*/master=$kube_master/g" ../k8s-easy-install/setup.conf
             sed -i "s/workers=.*/workers=$kube_workers/g" ../k8s-easy-install/setup.conf
             . checks/confirm-action.sh "Proceed with installtion(y)" "Cancelled"
