@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
-prnt "Manage etcd states"
+prnt "Manage etcd states(mes)"
 declare -A stateActions
 stateActions+=(['Quit']='quit')
 stateActions+=(['Save the current running etcd state']='save')
@@ -14,7 +14,7 @@ stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
 stateActions+=(['Cluster view']='cluster-view')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection: \e[0m'
+PS3=$'\e[01;32mSelection(mes): \e[0m'
 select option in "${!stateActions[@]}"; do
 
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
@@ -58,7 +58,7 @@ select option in "${!stateActions[@]}"; do
             esac
           done
           echo ""
-          PS3=$'\e[01;32mSelection: \e[0m'
+	  PS3=$'\e[01;32mSelection(mes): \e[0m'
         else
           err "No saved state to delete"
         fi
@@ -115,7 +115,7 @@ select option in "${!stateActions[@]}"; do
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection: \e[0m'
+	PS3=$'\e[01;32mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

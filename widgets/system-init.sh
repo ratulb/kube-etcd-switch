@@ -70,25 +70,25 @@ if is_master_ip_set; then
     fi
   done
 else
-  prnt "Enter master ip: "
-  read address
+  prnt "Master ip of kube cluser to manage"
+  unset address
+  read -p 'Master ip ' address
   if is_ip $address; then
-    prnt "Checking access to $address"
-    if can_access_ip $address; then
-      k8s_master_addr=k8s_master=$address
-      if [ ! -z "$debug" ]; then
-        cat setup.conf
-        sed -i "/k8s_master/c $k8s_master_addr" setup.conf
-        cat setup.conf
+
+    if [ "$address" != "$this_host_ip" ]; then
+      prnt "Checking access to $address"
+      if can_access_ip $address; then
+        sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
+        prnt "Master ip has been updated"
+        read_setup
       else
-        sed -i "/k8s_master/c $k8s_master_addr" setup.conf
+        err "Can not access $address"
       fi
+    else
+      sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
       prnt "Master ip has been updated"
       read_setup
-    else
-      err "Can not access $address. Has this machine's ssh key been copied to $address?"
     fi
-    #break
   else
     err "Not a valid address"
   fi

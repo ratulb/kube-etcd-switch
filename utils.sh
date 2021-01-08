@@ -47,7 +47,7 @@ read_setup() {
   done <"setup.conf"
 
   if [ -z "$k8s_master" ]; then
-    err -e "\033[33;5mNo k8s_master found in setup.conf!\033[0m"
+    err "No k8s_master found in setup.conf"
   fi
 
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
@@ -56,8 +56,7 @@ read_setup() {
   export gendir=$(pwd)/generated
 
   if [ -z "$etcd_servers" ]; then
-    err "No etcd servers found in setup.conf!\e[0m"
-    #echo -e "\033[33;5mNo etcd servers found in setup.conf!\033[0m"
+    err "No etcd servers found in setup.conf"
   fi
 
   for svr in $etcd_servers; do

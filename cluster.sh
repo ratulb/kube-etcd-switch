@@ -29,10 +29,10 @@ select option in "${!clusterActions[@]}"; do
         . extra/setup-kube-cluster.sh
         PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;
-	stop-embedded-etcd)
+      stop-embedded-etcd)
         . stop-embedded-etcd.sh
         ;;
-	start-embedded-etcd)
+      start-embedded-etcd)
         . start-embedded-etcd.sh
         ;;
       external-etcd)
@@ -40,20 +40,20 @@ select option in "${!clusterActions[@]}"; do
         . widgets/external-etcd.sh
         ;;
       system-init)
-        . checks/cluster-state.sh &> /dev/null
+        . checks/cluster-state.sh &>/dev/null
         if [ "$cluster_state" = "external-up" ]; then
-	  warn "System init will fail when cluster is running on external etcd!"
+          warn "System init will fail when cluster is running on external etcd!"
+          return 1
         fi
         . widgets/system-init.sh
         system_init_response=$?
-        debug "System init response: $system_init_response"
         if [ "$system_init_response" -ne 0 ]; then
           err "System init was not complete - turn on debug & check messages."
         else
           if [ "$user_action" = "q" ]; then
             prnt "Cancelled"
           else
-            prnt "System init is complete"
+            :
           fi
         fi
         echo ""
