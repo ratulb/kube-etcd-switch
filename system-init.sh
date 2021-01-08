@@ -6,7 +6,7 @@ sudo apt update
 . install-cfssl.sh
 sudo apt install tree -y
 sudo apt autoremove -y
-
+sudo apt install wget
 sed -i "s/#ETCD_VER#/$etcd_version/g" install-etcd.script
 sed -i "s|#kube_vault#|$kube_vault|g" archive.script
 sed -i "s|#kube_vault#|$kube_vault|g" unarchive.script
