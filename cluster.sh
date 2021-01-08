@@ -27,6 +27,7 @@ select option in "${!clusterActions[@]}"; do
         ;;
       setup-kube-cluster)
         . extra/setup-kube-cluster.sh
+        PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;
 	stop-embedded-etcd)
         . stop-embedded-etcd.sh
