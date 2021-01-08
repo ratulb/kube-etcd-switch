@@ -2,18 +2,23 @@
 . utils.sh
 
 if [ "$#" -ne 1 ]; then
-  err "Usage: $0 fileName(file name to save state to)"
-  exit 1
+  #err "Usage: $0 fileName(file name to save state to)"
+  err "No name provided - saving as unnamed"
+ #return 1
 fi
 
 . checks/cluster-state.sh
 if [ "$cluster_state" != 'embedded-up' -a "$cluster_state" != 'external-up' ]; then
   err "Cluster state is $cluster_state. Declining request."
-  exit 1
+  return 1
 fi
 
 when=$(date +%F_%H-%M-%S)
 fileName=$1
+
+if [ -z "$fileName" ]; then
+  fileName="unnamed"
+fi
 
 server_ips=$etcd_ips
 if [[ ! $etcd_ips =~ "$master_ip" ]]; then
@@ -22,8 +27,8 @@ fi
 
 mkdir -p $kube_vault/system-snaps
 mkdir -p $kube_vault/migration-archive
-skipped_hosts=''
-saved_hosts=''
+unset skipped_hosts
+unset saved_hosts
 for ip in $server_ips; do
   if can_access_ip $ip; then
     if [ "$ip" = "$this_host_ip" ]; then
@@ -36,10 +41,10 @@ for ip in $server_ips; do
       . execute-command-remote.sh $ip "rm -rf /$kube_vault/system-snap/*"
     fi
     prnt "Saved state for host($ip)"
-    if [ -z "saved_hosts" ]; then
+    if [ -z "$saved_hosts" ]; then
       saved_hosts="$ip"
     else
-      saved_hosts+=,$ip
+      saved_hosts+=",$ip"
     fi
 
   else
@@ -47,7 +52,7 @@ for ip in $server_ips; do
     if [ -z "$skipped_hosts" ]; then
       skipped_hosts="$ip"
     else
-      skipped_hosts+=,$ip
+      skipped_hosts+=",$ip"
     fi
   fi
 done
