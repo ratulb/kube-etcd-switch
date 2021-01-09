@@ -38,4 +38,4 @@ if [ ! -z "$servers_not_stopped_at" ]; then
   prnt "Server(s) not stopped at $servers_not_stopped_at"
 fi
 
-prnt "Etcd server stop request was proccessed"
+prnt "Etcd server stop request was processed"
