@@ -15,10 +15,11 @@ clusterActions+=(['Setup kubernetes cluster']='setup-kube-cluster')
 clusterActions+=(['External etcd']='external-etcd')
 clusterActions+=(['Stop embedded etcd']='stop-embedded-etcd')
 clusterActions+=(['Start embedded etcd']='start-embedded-etcd')
+clusterActions+=(['Console']='console')
 re="^[0-9]+$"
 PS3=$'\e[01;32mSelection(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 12 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${clusterActions[$option]}" in
@@ -32,6 +33,10 @@ select option in "${!clusterActions[@]}"; do
       stop-embedded-etcd)
 	 prnt "Stopping embedded etcd"
         . stop-embedded-etcd.sh
+        ;;
+      console)
+        ./console.sh
+        PS3=$'\e[01;32mSelection(mec): \e[0m'
         ;;
       start-embedded-etcd)
         . start-embedded-etcd.sh

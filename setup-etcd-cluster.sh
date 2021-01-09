@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
-. checks/ca-cert-existence.sh
+. checks/ca-cert-existence.sh || return 1
+. checks/system-initialized.sh || return 1
 
 servers=$etcd_servers
 if [ "$#" -ge 0 ]; then

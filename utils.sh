@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 export usr=$(whoami)
 
+prnt() {
+  echo -e $"\e[01;32m$1\e[0m"
+}
+
+err() {
+  echo -e "\e[31m$1\e[0m"
+}
+
+warn() {
+  echo -e "\e[33m$1\e[0m"
+}
+
 debug() {
   if [ ! -z "$debug" ]; then
     echo -e "\033[1;34m$1\033[0m"
@@ -78,17 +90,6 @@ read_setup() {
 "normalize_etcd_entries"
 "read_setup"
 
-prnt() {
-  echo -e $"\e[01;32m$1\e[0m"
-}
-
-err() {
-  echo -e "\e[31m$1\e[0m"
-}
-
-warn() {
-  echo -e "\e[33m$1\e[0m"
-}
 ask() {
   echo -e "\e[5m$1"
 }
@@ -101,7 +102,7 @@ sleep_few_secs() {
 
 can_ping_ip() {
   if [ "$1" = "$this_host_ip" ]; then
-	  return 0
+    return 0
   fi
   local ip=$1
   debug "Pinging ip $ip"
@@ -136,6 +137,7 @@ upsert_etcd_server_list() {
   fi
   read_setup
 }
+
 prune_etcd_server_list() {
   [[ -z "$etcd_servers" ]] && return 0
   nodes_being_deleted=$@
@@ -187,6 +189,7 @@ is_ip() {
     return 1
   fi
 }
+
 #A simple check - revisit if required
 is_host_name_ok() {
   local rx="^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$"

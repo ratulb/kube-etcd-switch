@@ -55,10 +55,17 @@ if can_ping_ip $master_ip; then
 else
   err "Could not ping kube cluster master - wrong master($master_ip) or system has not been initialized yet."
 fi
+read_setup
 api_server_pointing_at
 if [ -z "$API_SERVER_POINTING_AT" ]; then
   err "No API server etcd endpoint"
 else
   prnt "API server is pointing at:"
   prnt "$API_SERVER_POINTING_AT"
+fi
+if [ -z "$etcd_servers" ]; then
+  warn "External etcd endpoints are empty"
+else
+  prnt "Etcd servers are:"
+  prnt "$etcd_servers"
 fi
