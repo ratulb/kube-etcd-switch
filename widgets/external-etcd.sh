@@ -29,28 +29,32 @@ select option in "${!extEtcdActions[@]}"; do
           err "No etcd node found"
         else
           prnt "Configured etcd servers: $etcd_ips"
-          . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe" || return 1
-          headers='Host,IP,Accessible,Status'
-          echo $headers >/tmp/temp_file
-          for svr in $etcd_servers; do
-            pair=(${svr//:/ })
-            host=${pair[0]}
-            ip=${pair[1]}
-            access='No'
-            if can_access_ip $ip; then
-              access='yes'
-            fi
-            state='N/A'
-            if can_ping_ip $ip; then
-              state='Up'
-            fi
-            node_info=$host,$ip,$access,$state
-            echo $node_info >>/tmp/temp_file
+          . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe"
+          if [ "$?" -eq 0 ]; then
+            headers='Host,IP,Accessible,Status'
+            echo $headers >/tmp/temp_file
+            for svr in $etcd_servers; do
+              pair=(${svr//:/ })
+              host=${pair[0]}
+              ip=${pair[1]}
+              access='No'
+              if can_access_ip $ip; then
+                access='yes'
+              fi
+              state='N/A'
+              if can_ping_ip $ip; then
+                state='Up'
+              fi
+              node_info=$host,$ip,$access,$state
+              echo $node_info >>/tmp/temp_file
+              printTable "," "$(cat /tmp/temp_file)"
+              echo ""
+            done
             printTable "," "$(cat /tmp/temp_file)"
-            echo ""
-          done
-          printTable "," "$(cat /tmp/temp_file)"
-          rm -f /tmp/temp_file
+            rm -f /tmp/temp_file
+          else
+            :
+          fi
         fi
         ;;
       add-node)
