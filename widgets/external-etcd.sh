@@ -32,6 +32,7 @@ select option in "${!extEtcdActions[@]}"; do
           . checks/confirm-action.sh "Are they correct(y)" "Cancelled etcd node probe"
           if [ "$?" -eq 0 ]; then
             headers='Host,IP,Accessible,Status'
+            echo ""
             echo $headers >/tmp/temp_file
             for svr in $etcd_servers; do
               pair=(${svr//:/ })
@@ -122,9 +123,6 @@ select option in "${!extEtcdActions[@]}"; do
               . remove-admitted-node.sh $host_and_ip
               if [ "$?" -eq 0 ]; then
                 prnt "Removed etcd node($host_and_ip) - updating configuration"
-                #current_entries=$(cat setup.conf | grep etcd_servers= | cut -d'=' -f2)
-                #replacement=$(echo ${current_entries/$host_and_ip/})
-                #sed -i "s/$current_entries/$replacement/g" setup.conf
                 prune_etcd_server_list $host_and_ip
                 read_setup
                 . synch-etcd-endpoints.sh
@@ -176,7 +174,7 @@ select option in "${!extEtcdActions[@]}"; do
               ;;
             'Launch')
               echo "Type in the host & ip(s)of etcd cluster nodes - blank line to complete"
-              echo "Example: 'server:10.148.15.200'"
+              echo "Example: '$(hostname):$(hostname -i)'"
               rm -f /tmp/etcd_host_and_ips.tmp
               while read line; do
                 [ -z "$line" ] && break
@@ -258,7 +256,9 @@ select option in "${!extEtcdActions[@]}"; do
         script=$(readlink -f "cluster.sh")
         exec "$script"
         ;;
-      *) ;;
+      *)
+    echo "$option - The option not yet programmed for" 
+;;
 
     esac
   fi
