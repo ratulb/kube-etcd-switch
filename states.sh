@@ -4,12 +4,12 @@ clear
 prnt "Manage etcd states(mes)"
 declare -A stateActions
 stateActions+=(['Quit']='quit')
-stateActions+=(['Save the current running etcd state']='save')
+stateActions+=(['Save current etcd state']='save')
 stateActions+=(['Delete all or selected states']='delete')
 stateActions+=(['Restore a saved state']='restore')
 stateActions+=(['List the saved states']='list')
-stateActions+=(['Restore last external etcd state']='last-external')
-stateActions+=(['Restore last embedded etcd state']='last-embedded')
+stateActions+=(['Restore last good external etcd state']='last-external')
+stateActions+=(['Restore last good embedded etcd state']='last-embedded')
 stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
 stateActions+=(['Cluster view']='cluster-view')
@@ -47,9 +47,13 @@ select option in "${!stateActions[@]}"; do
                   [ -z "$line" ] && break
                   echo "$line" >>/tmp/state_deletions.tmp
                 done
-                selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
-                delete_saved_states $selected_for_deletions
-                rm -f /tmp/state_deletions.tmp
+                if [ -s /tmp/state_deletions.tmp ]; then
+                  selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
+                  delete_saved_states $selected_for_deletions
+                  rm -f /tmp/state_deletions.tmp
+                else
+                  err "No file(s) selected"
+                fi
                 break
                 ;;
               Back)
@@ -58,7 +62,7 @@ select option in "${!stateActions[@]}"; do
             esac
           done
           echo ""
-	  PS3=$'\e[01;32mSelection(mes): \e[0m'
+          PS3=$'\e[01;32mSelection(mes): \e[0m'
         else
           err "No saved state to delete"
         fi
@@ -115,7 +119,7 @@ select option in "${!stateActions[@]}"; do
           esac
         done
         echo ""
-	PS3=$'\e[01;32mSelection(mes): \e[0m'
+        PS3=$'\e[01;32mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

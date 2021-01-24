@@ -102,8 +102,8 @@ sleep_few_secs() {
   sleep $sleep_time
 }
 
-can_ping_ip() {
-  if [ "$1" = "$this_host_ip" ]; then
+can_ping_address() {
+  if is_address_local $1; then
     return 0
   fi
   local ip=$1
@@ -125,15 +125,12 @@ can_access_ip() {
   if [ "$1" = "$this_host_ip" ]; then
     return 0
   else
-    . execute-command-remote.sh $1 ls -la &>/dev/null
+    remote_cmd $1 ls -la &>/dev/null
   fi
 }
-set_master_address() {
-  local address=$1
-  sed -i "s/master_address=.*/master_address=$address/g" setup.conf
-}
 is_master_set() {
-  [ ! -z "$master_address" ] && (is_ip $master_address || is_host_name_ok $master_address)
+  #[[ ! -z "$master_address" ]] && (is_ip $master_address || is_host_name_ok $master_address)
+  [[ ! -z "$master_address" ]] && can_access_address $master_address
 }
 
 upsert_etcd_server_list() {
@@ -222,7 +219,7 @@ command_exists() {
 can_access_address() {
   local _addr=$1
   if ! is_ip $_addr && ! is_host_name_ok $_addr; then
-    err "Address not is not valid"
+    err "Address is not valid"
     return 1
   fi
   if is_address_local $_addr; then
@@ -251,7 +248,7 @@ remote_cmd() {
 }
 
 remote_copy() {
-  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $1 $2
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o UserKnownHostsFile=/dev/null $1 $2
 }
 
 check_file_existence() {

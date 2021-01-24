@@ -7,8 +7,10 @@ unset masters_from_query
 unset masters_from_user
 if [[ "$#" -eq 1 ]] && (is_ip $1 || is_host_name_ok $1); then
   master_node_addr=$1
+  debug "system-init.sh master_node_addr=$1: $master_node_addr"
 else
   master_node_addr=$master_address
+  debug "system-init.sh master_node_addr=$master_node_address: $master_node_addr"
 fi
 
 prnt "kube-etcd-switch initializing..."
@@ -129,8 +131,6 @@ else
   master_ip_and_names=$masters_from_user
 fi
 
-prnt "master_ip_and_names: $master_ip_and_names"
-
 sudo apt update
 . install-cfssl.sh
 sudo apt install tree -y
@@ -151,8 +151,12 @@ sudo ln -s checks/endpoint-liveness-cluster.sh ep.sh
 prnt "Installing etcd on $this_host_ip"
 . install-etcd.script
 
-if ! [[ "$master_ip_and_names" =~ *"$this_host_ip"* ]] && ! [[ "$master_ip_and_names" =~ *"$this_host_name"* ]] && [[ "$master_ip_and_names" =~ *"$master_node_addr"* ]]; then
+debug "Intialization request: $master_ip_and_names"
+debug "Intialization request: $this_host_ip, $this_host_name and $master_node_addr"
 
+if ! [[ "$master_ip_and_names" =~ "$this_host_ip" ]] && ! [[ "$master_ip_and_names" =~ "$this_host_name" ]] && [[ "$master_ip_and_names" =~ "$master_node_addr" ]]; then
+
+  debug "Intialization request - using remote host as master"
   prnt "Copying etcd certs to $this_host_ip"
   sudo mkdir -p /etc/kubernetes/pki/etcd/
 
@@ -215,6 +219,7 @@ if ! [[ "$master_ip_and_names" =~ *"$this_host_ip"* ]] && ! [[ "$master_ip_and_n
   fi
 
 else
+  debug "Intialization request - using localhost as master"
   if [ -s /etc/kubernetes/manifests/etcd.yaml ]; then
     cat /etc/kubernetes/manifests/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
   else

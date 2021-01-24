@@ -3,20 +3,20 @@
 command_exists kubectl
 unset cluster_state
 unset cluster_desc
-if can_ping_ip $master_ip; then
-  if can_access_ip $master_ip; then
+if can_ping_address $master_address; then
+  if can_access_address $master_address; then
     if [ ! -z "$debug" ]; then
-      kubectl cluster-info --request-timeout "5s"
+      kubectl cluster-info --request-timeout "3s"
     else
-      kubectl cluster-info --request-timeout "5s" &>/dev/null
+      kubectl cluster-info --request-timeout "3s" &>/dev/null
     fi
 
     cluster_up=$?
 
-    if [ "$this_host_ip" = "$master_ip" ]; then
+    if [ "$this_host_ip" = "$master_address" ]; then
       ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
     else
-      . execute-command-remote.sh $master_ip ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
+      remote_cmd $master_address ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
     fi
 
     etcd_yaml_present=$?
@@ -49,11 +49,11 @@ if can_ping_ip $master_ip; then
       export cluster_state=ukdown
     fi
   else
-    err "Can not access $master_ip - wrong master or system has not been initialized yet."
+    err "Can not access $master_address - wrong master or system has not been initialized yet."
   fi
 
 else
-  err "Could not ping kube cluster master - wrong master($master_ip) or system has not been initialized yet."
+  err "Could not ping kube cluster master - wrong master($master_address) or system has not been initialized yet."
 fi
 read_setup
 api_server_pointing_at

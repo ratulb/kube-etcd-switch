@@ -17,14 +17,18 @@ when=$(date +%F_%H-%M-%S)
 fileName=$1
 
 if [ -z "$fileName" ]; then
-  fileName="unnamed"
+  fileName="unnamed-state"
 fi
 
 server_ips=$etcd_ips
-if [[ ! $etcd_ips =~ "$master_ip" ]]; then
-  server_ips+=" $master_ip"
+if [ ! -z "$masters" ]; then
+  for mstr in $masters; do
+    if [[ ! $etcd_ips =~ "$mstr" ]]; then
+      server_ips+=" $mstr"
+    fi
+  done
 fi
-
+server_ips=$(echo $server_ips | xargs)
 mkdir -p $kube_vault/system-snaps
 mkdir -p $kube_vault/migration-archive
 unset skipped_hosts
@@ -35,10 +39,9 @@ for ip in $server_ips; do
       . archive.script
       mv $kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
     else
-      . execute-script-remote.sh $ip archive.script
-      sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        $ip:/$kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
-      . execute-command-remote.sh $ip "rm -rf /$kube_vault/system-snap/*"
+      remote_script $ip archive.script
+      remote_copy $ip:/$kube_vault/system-snap/system-snap.tar.gz $kube_vault/system-snaps/$ip-system-snap.tar.gz
+      remote_cmd $ip "rm -rf /$kube_vault/system-snap/*"
     fi
     prnt "Saved state for host($ip)"
     if [ -z "$saved_hosts" ]; then
@@ -57,7 +60,7 @@ for ip in $server_ips; do
   fi
 done
 
-cd $kube_vault
+cd $kube_vault &>/dev/null
 tar cfz $cluster_state#$fileName@$when.tar.gz system-snaps
 mv $cluster_state#$fileName@$when.tar.gz migration-archive && rm -rf $kube_vault/system-snaps/* && rm -rf $kube_vault/system-snap/*
 
