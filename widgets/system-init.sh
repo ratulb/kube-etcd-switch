@@ -1,11 +1,29 @@
 #!/usr/bin/env bash
 . utils.sh
+initialize() {
+  prnt "Checking whether initalization requirements are met..."
+  local address=$1
+  if check_system_init_reqrmnts_met $address; then
+    prnt "Requirements are satisfied"
+    . checks/confirm-action.sh "Proceed with initialization(y)" "Cancelled"
+    if [ "$?" -eq 0 ]; then
+      echo ""
+      . system-init.sh $address
+    else
+      echo "No"
+      return 1
+    fi
+  else
+    err "Requirements are not satified"
+    return 1
+  fi
+}
 re="^[0-9]+$"
 unset choices
-if is_master_ip_set; then
+if is_master_set; then
   prnt "Master ip: $master_ip"
   PS3=$'\e[01;32mSelect(q to quit): \e[0m'
-  choices=('Initialize system' 'Edit master ip')
+  choices=('Initialize system' 'Edit master address')
   unset user_action
   select choice in "${choices[@]}"; do
     if [ "$REPLY" == 'q' ]; then
@@ -40,7 +58,7 @@ if is_master_ip_set; then
           fi
           #break
           ;;
-        'Edit master ip')
+        'Edit master address')
           echo "Edit master ip: "
           unset address
           prnt "Master ip(q - cancel)"
@@ -70,26 +88,15 @@ if is_master_ip_set; then
     fi
   done
 else
-  prnt "Master ip of kube cluser to manage"
+  prnt "Cluster master address"
   unset address
-  read -p 'Master ip ' address
-  if is_ip $address; then
-
-    if [ "$address" != "$this_host_ip" ]; then
-      prnt "Checking access to $address"
-      if can_access_ip $address; then
-        sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
-        prnt "Master ip has been updated"
-        read_setup
-      else
-        err "Can not access $address"
-      fi
-    else
-      sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
-      prnt "Master ip has been updated"
-      read_setup
-    fi
+  read -p 'Master address ' address
+  if can_access_address $address; then
+    set_master_address $address
+    initialize $address
+    prnt "Master address has been updated"
+    read_setup
   else
-    err "Not a valid address"
+    err "Master address not updated"
   fi
 fi

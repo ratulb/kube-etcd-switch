@@ -15,7 +15,7 @@ warn() {
 
 debug() {
   if [ ! -z "$debug" ]; then
-    echo -e "\033[1;34m$1\033[0m"
+    echo -e "\e[46m$1\e[0m"
   fi
 }
 
@@ -51,40 +51,42 @@ read_setup() {
       "initial_cluster_token") export initial_cluster_token="$value" ;;
       "default_restore_path") export default_restore_path=$(echo $value | sed 's:/*$::') ;;
       "default_backup_loc") export default_backup_loc=$(echo $value | sed 's:/*$::') ;;
-      "k8s_master") export k8s_master="$value" ;;
+      "masters") export masters="$value" ;;
       "etcd_version") export etcd_version="$value" ;;
       "kube_install_git_repo") export kube_install_git_repo="$value" ;;
       "#"*) ;;
     esac
   done <"setup.conf"
 
-  if [ -z "$k8s_master" ]; then
-    err "No k8s_master found in setup.conf"
+  if [ -z "$masters" ]; then
+    warn "No masters found in setup.conf"
+  else
+    export master_address=$(echo $masters | cut -d' ' -f1)
+  fi
+
+  if [ -z "$etcd_servers" ]; then
+    warn "No etcd servers found in setup.conf"
+  else
+    for svr in $etcd_servers; do
+      pair=(${svr//:/ })
+      etcd_name=${pair[0]}
+      etcd_ip=${pair[1]}
+      if [ -z "$etcd_ips" ]; then
+        etcd_ips=$etcd_ip
+        etcd_names=$etcd_name
+      else
+        etcd_ips+=' '$etcd_ip
+        etcd_names+=' '$etcd_name
+      fi
+    done
+    export etcd_ips=$etcd_ips
+    export etcd_names=$etcd_names
   fi
 
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
-  export master_ip=$(echo $k8s_master)
+  export this_host_name=$(hostname)
   export kube_vault=${HOME}/.kube_vault
   export gendir=$(pwd)/generated
-
-  if [ -z "$etcd_servers" ]; then
-    err "No etcd servers found in setup.conf"
-  fi
-
-  for svr in $etcd_servers; do
-    pair=(${svr//:/ })
-    etcd_name=${pair[0]}
-    etcd_ip=${pair[1]}
-    if [ -z "$etcd_ips" ]; then
-      etcd_ips=$etcd_ip
-      etcd_names=$etcd_name
-    else
-      etcd_ips+=' '$etcd_ip
-      etcd_names+=' '$etcd_name
-    fi
-  done
-  export etcd_ips=$etcd_ips
-  export etcd_names=$etcd_names
 }
 
 "normalize_etcd_entries"
@@ -109,6 +111,16 @@ can_ping_ip() {
   ping -q -c 3 $ip &>/dev/null || return 1
 }
 
+is_address_local() {
+  local addr=$1
+  if [[ "$addr" = $this_host_ip ]] || [[ "$addr" = "$this_host_name" ]] || [[ "$addr" = "127.0.0.1" ]] || [[ "$ad
+dr" = "localhost" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 can_access_ip() {
   if [ "$1" = "$this_host_ip" ]; then
     return 0
@@ -116,9 +128,12 @@ can_access_ip() {
     . execute-command-remote.sh $1 ls -la &>/dev/null
   fi
 }
-
-is_master_ip_set() {
-  [ ! -z "$master_ip" ] && is_ip $master_ip
+set_master_address() {
+  local address=$1
+  sed -i "s/master_address=.*/master_address=$address/g" setup.conf
+}
+is_master_set() {
+  [ ! -z "$master_address" ] && (is_ip $master_address || is_host_name_ok $master_address)
 }
 
 upsert_etcd_server_list() {
@@ -182,10 +197,10 @@ is_ip() {
   local address=$1
   local rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
   if [[ "$address" =~ ^$rx\.$rx\.$rx\.$rx$ ]]; then
-    prnt "$address is valid ip"
+    debug "$address is valid ip"
     return 0
   else
-    err "$address is not valid ip"
+    debug "$address is not valid ip"
     return 1
   fi
 }
@@ -193,7 +208,7 @@ is_ip() {
 #A simple check - revisit if required
 is_host_name_ok() {
   local rx="^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$"
-  [[ $1 =~ $rx ]] && prnt "hostname is ok" || return 1
+  [[ $1 =~ $rx ]] && debug "hostname is ok" || return 1
 }
 
 command_exists() {
@@ -202,6 +217,41 @@ command_exists() {
     err "$1 not installed. Stopping execution. Has the system been initialized?"
     exit 1
   fi
+}
+
+can_access_address() {
+  local _addr=$1
+  if ! is_ip $_addr && ! is_host_name_ok $_addr; then
+    err "Address not is not valid"
+    return 1
+  fi
+  if is_address_local $_addr; then
+    return 0
+  else
+    remote_cmd $1 ls -la &>/dev/null
+    if [ "$?" -eq 0 ]; then
+      debug "$_addr is accessible"
+    else
+      (err "Can not access $_addr" && return 1)
+    fi
+  fi
+}
+remote_script() {
+  #prnt "Executing on $1"
+  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 $1 <$2
+}
+remote_cmd() {
+  remote_host=$1
+  if [ -z "$quiet" ]; then
+    : #prnt "Executing command on $remote_host"
+  fi
+  shift
+  args="$@"
+  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=3" $remote_host $args
+}
+
+remote_copy() {
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $1 $2
 }
 
 check_file_existence() {
@@ -217,7 +267,7 @@ check_file_existence() {
         return 1
       fi
     else
-      . execute-command-remote.sh $host "[[ -s $f ]]"
+      remote_cmd $host "[[ -s $f ]]"
       if [ "$?" -eq 1 ]; then
         if [ ! -z "$debug" ]; then
           err "File existence check failed for $f @host($host)"
@@ -477,7 +527,7 @@ next_data_dir() {
   else
     count=$(sudo -u $usr ssh $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
     if [ $count ] >0 && sudo -u $usr ssh $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
-      . execute-command-remote.sh $1 "ls -l $default_restore_path | grep ^d >list.txt"
+      remote_cmd $1 "ls -l $default_restore_path | grep ^d >list.txt"
       cat list.txt | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
@@ -656,18 +706,18 @@ function trimString() {
 
 api_server_pointing_at() {
   master_pointees=''
-  if [ ! -z "$master_ip" ]; then
-    if [ "$this_host_ip" = "$master_ip" ]; then
+  if [ ! -z "$master_address" ]; then
+    if [ "$this_host_ip" = "$master_address" ]; then
       master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
     else
-      master_pointees=$(sudo -u $usr ssh $master_ip \
+      master_pointees=$(sudo -u $usr ssh $master_address \
         "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
     fi
     master_pointees=$(echo $master_pointees | xargs)
     debug "kubernetes master is pointing at: $master_pointees"
     export API_SERVER_POINTING_AT="$master_pointees"
   else
-    err "kube master_ip not set"
+    err "kube master_address not set"
   fi
 }
 
