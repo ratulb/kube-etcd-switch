@@ -5,8 +5,8 @@ if ! embedded_etcd_endpoints; then
 else
   debug "Removing embedded etcd member $1"
   ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-    --cert=$kube_api_etcd_client_cert \
-    --key=$kube_api_etcd_client_key \
+    --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
+    --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
     --endpoints=$EMBEDDED_ETCD_ENDPOINTS member remove $1
   if [ "$?" -eq 0 ]; then
     prnt "Removed member $1"

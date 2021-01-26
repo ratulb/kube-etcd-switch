@@ -9,7 +9,7 @@ fi
 
 . checks/cluster-state.sh
 if [ "$cluster_state" != 'embedded-up' -a "$cluster_state" != 'external-up' ]; then
-  err "Cluster state is $cluster_state. Declining request."
+  err "Cluster state is $cluster_state. Cluster state not saved."
   return 1
 fi
 

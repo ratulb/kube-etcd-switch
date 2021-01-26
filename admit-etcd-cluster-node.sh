@@ -28,7 +28,7 @@ cat /tmp/add_ep_probe_resp.txt | grep "$ip" | grep 'started'
 prnt "Adding node($host) with ip($ip) to etcd cluster"
 
 ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-  --cert=$kube_api_etcd_client_cert --key=$kube_api_etcd_client_key \
+  --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
   --endpoints=$API_SERVER_ETCD_URL member add $host \
   --peer-urls=https://$ip:2380 >/tmp/member_add_resp.txt 2>&1
 

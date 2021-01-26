@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 if [ "$#" -ne 1 ]; then
-  err "Usage: $0 snapshot file name"
+  err "Usage: ./restore-snapshot@masters.sh 'snapshot file name'"
   return 1
 fi
 . checks/snapshot-existence.sh

@@ -161,20 +161,6 @@ if ! [[ "$master_ip_and_names" =~ "$this_host_ip" ]] && ! [[ "$master_ip_and_nam
   prnt "Copying etcd certs to $this_host_ip"
   sudo mkdir -p /etc/kubernetes/pki/etcd/
 
-  remote_copy $master_node_addr:/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/
-
-  if [ "$?" -ne 0 ]; then
-    err "Could not copy client cert from $master_node_addr. System initialization is not complete!"
-    return 1
-  fi
-
-  remote_copy $master_node_addr:/etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/
-
-  if [ "$?" -ne 0 ]; then
-    err "Could not copy client key from $master_node_addr. System initialization is not complete!"
-    return 1
-  fi
-
   remote_copy $master_node_addr:/etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/
 
   if [ "$?" -ne 0 ]; then
@@ -186,51 +172,6 @@ if ! [[ "$master_ip_and_names" =~ "$this_host_ip" ]] && ! [[ "$master_ip_and_nam
 
   if [ "$?" -ne 0 ]; then
     err "Could not copy ca.key from $master_node_addr. System initialization is not complete!"
-    return 1
-  fi
-
-  remote_copy $master_node_addr:/etc/kubernetes/manifests/etcd.yaml $kube_vault
-
-  if [ "$?" -ne 0 ]; then
-    err "Could not copy etcd.yaml $master_node_addr. System initialization is not complete!"
-    return 1
-  fi
-
-  if [ -s $kube_vault/etcd.yaml ]; then
-    cat $kube_vault/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
-    rm $kube_vault/etcd.yaml
-  else
-    err "etcd.yaml is empty or does not exist! System initialization not complete"
-    return 1
-  fi
-
-  remote_copy $master_node_addr:/etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault
-
-  if [ "$?" -ne 0 ]; then
-    err "Could not copy kube-apiserver.yaml from $master_node_addr. System initialization is not complete!"
-    return 1
-  fi
-
-  if [ -s $kube_vault/kube-apiserver.yaml ]; then
-    cat $kube_vault/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
-    rm $kube_vault/kube-apiserver.yaml
-  else
-    err "kube-apiserver.yaml is empty or does not exist! System initialization not complete"
-    return 1
-  fi
-
-else
-  debug "Intialization request - using localhost as master"
-  if [ -s /etc/kubernetes/manifests/etcd.yaml ]; then
-    cat /etc/kubernetes/manifests/etcd.yaml | base64 >"$kube_vault"/etcd.yaml.encoded
-  else
-    err "etcd.yaml is empty or does not exist! System initialization is not complete"
-    return 1
-  fi
-  if [ -s /etc/kubernetes/manifests/kube-apiserver.yaml ]; then
-    cat /etc/kubernetes/manifests/kube-apiserver.yaml | base64 >"$kube_vault"/kube-apiserver.yaml.encoded
-  else
-    err "kube-apiserver.yaml is empty or does not exist! System initialization is not complete"
     return 1
   fi
 fi

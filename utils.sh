@@ -21,8 +21,7 @@ debug() {
 
 #Need further check for duplicate ip and host name
 normalize_etcd_entries() {
-err "start *********************************"
-      	current_entries=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2 | xargs)
+  current_entries=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2 | xargs)
   if [ ! -z "$current_entries" ]; then
     debug "normalize_etcd_entries: current entries: $current_entries"
     normalized_entries=''
@@ -36,7 +35,6 @@ err "start *********************************"
     debug "normalize_etcd_entries: $normalized_entries"
     sed -i "s|$current_entries|$normalized_entries|g" setup.conf
   fi
-err "End *********************************"
 }
 
 read_setup() {
@@ -45,8 +43,6 @@ read_setup() {
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
-      "kube_api_etcd_client_cert") export kube_api_etcd_client_cert="$value" ;;
-      "kube_api_etcd_client_key") export kube_api_etcd_client_key="$value" ;;
       "etcd_ca") export etcd_ca="$value" ;;
       "etcd_key") export etcd_key="$value" ;;
       "sleep_time") export sleep_time="$value" ;;
@@ -96,7 +92,7 @@ read_setup() {
 
 remote_script() {
   #prnt "Executing on $1"
-  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 $1 <$2
+  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 $1 <$2
 }
 remote_cmd() {
   remote_host=$1
@@ -105,10 +101,10 @@ remote_cmd() {
   fi
   shift
   args="$@"
-  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=3" $remote_host $args
+  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=5" $remote_host $args
 }
 remote_copy() {
-  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o UserKnownHostsFile=/dev/null $1 $2
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null $1 $2
 }
 
 ask() {
@@ -782,10 +778,10 @@ embedded_etcd_endpoints() {
         endpoints=$mstr:2379
       else
         endpoints+=",$mstr:2379"
-        export EMBEDDED_ETCD_ENDPOINTS=$endpoints
       fi
-      debug "Embedded etcd endpoints: $endpoints"
     done
+    export EMBEDDED_ETCD_ENDPOINTS=$endpoints
+    debug "Embedded etcd endpoints: $endpoints"
   fi
 }
 
@@ -800,9 +796,9 @@ external_etcd_endpoints() {
         ex_etcd_endpoints=$ex_etcd_ip:2379
       else
         ex_etcd_endpoints+=",$ex_etcd_ip:2379"
-        export EXTERNAL_ETCD_ENDPOINTS=$ex_etcd_endpoints
       fi
-      debug "External etcd endpoints: $ex_etcd_endpoints"
     done
+    export EXTERNAL_ETCD_ENDPOINTS=$ex_etcd_endpoints
+    debug "External etcd endpoints: $ex_etcd_endpoints"
   fi
 }

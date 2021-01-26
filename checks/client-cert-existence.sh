@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-if [ ! -f "$kube_api_etcd_client_cert" ] || [ ! -f "$kube_api_etcd_client_key" ]; then
+if [ ! -f "/etc/kubernetes/pki/etcd/$(hostname)-client.crt" ] || [ ! -f "/etc/kubernetes/pki/etcd/$(hostname)-client.key" ]; then
   err "API client cert/key missing!"
-  exit 1
+  return 1
 fi

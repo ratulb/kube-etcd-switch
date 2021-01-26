@@ -6,10 +6,10 @@ if embedded_etcd_endpoints; then
     ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
       --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-      --endpoints=$EMBEDDED_ETCD_ENDPOINTS:2379 member list
+      --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
     if [ ! $? = 0 ]; then
       err "etcd endpoint list failed"
-      retrun 1
+      return 1
     fi
     prnt "etcd endpoint is up."
     rm -f etcd.draft
@@ -21,7 +21,7 @@ if embedded_etcd_endpoints; then
       ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
         --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
         --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-        --endpoints=$EMBEDDED_ETCD_ENDPOINTS:2379 member list
+        --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
 
       status=$?
       if [ "$status" -eq 0 ]; then

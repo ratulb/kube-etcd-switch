@@ -6,6 +6,10 @@
 
 if [ "$?" -eq 0 ]; then
   snapshot_name=$1
+  if [ -z "$snapshot_name" ]; then
+    err "Snapshot name is empty - Not processing request"
+    return 1
+  fi
   snapshot_name="$snapshot_name-em"
   next_snapshot $snapshot_name
 
@@ -16,8 +20,8 @@ if [ "$?" -eq 0 ]; then
   . checks/confirm-action.sh "Proceed(y)" "Cancelled snapshot save."
   if [ "$?" -eq 0 ]; then
     ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=$kube_api_etcd_client_cert \
-      --key=$kube_api_etcd_client_key \
+      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
+      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
       --endpoints=$EMBEDDED_ETCD_ENDPOINT snapshot save $ETCD_SNAPSHOT &>/tmp/snapshot-save-mgs.txt
     echo ""
     prnt "etcd snapshot saved at $(basename $ETCD_SNAPSHOT) and status is:"

@@ -15,7 +15,8 @@ else
   remote_copy $_master_ip:/etc/kubernetes/manifests/etcd.yaml etcd.draft
   remote_copy $_master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
 fi
-mouth_path=$(cat etcd.draft | grep volumeMounts: -A1 | grep '\- mountPath:' | xargs | cut -d' ' -f3)
+#TODO Need a stronger way to do find replace
+mount_path=$(cat etcd.draft | grep volumeMounts: -A1 | grep '\- mountPath:' | xargs | cut -d' ' -f3)
 sed -i "s|$mount_path|$data_dir|g" etcd.draft
 host_path=$(cat etcd.draft | tail -n4 | grep path: | xargs | cut -d' ' -f2)
 sed -i "s|$host_path|$data_dir|g" etcd.draft
@@ -24,7 +25,6 @@ sed -i "s|$current_data_dir|$data_dir|g" etcd.draft
 #initial-cluster-token
 sed -i '/initial-cluster-token/d' etcd.draft
 sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=$token" etcd.draft
-
 current_etcd_url=$(cat kube.draft | grep "\- --etcd-servers" | cut -d '=' -f 2)
 embedded_etcd_url=https://127.0.0.1:2379,https://$_master_ip:2379
 sed -i "s|$current_etcd_url|$embedded_etcd_url|g" kube.draft
