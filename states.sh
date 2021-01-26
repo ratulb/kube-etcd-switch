@@ -14,7 +14,7 @@ stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
 stateActions+=(['Cluster view']='cluster-view')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection(mes): \e[0m'
+PS3=$'\e[92mSelection(mes): \e[0m'
 select option in "${!stateActions[@]}"; do
 
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
@@ -62,7 +62,7 @@ select option in "${!stateActions[@]}"; do
             esac
           done
           echo ""
-          PS3=$'\e[01;32mSelection(mes): \e[0m'
+          PS3=$'\e[92mSelection(mes): \e[0m'
         else
           err "No saved state to delete"
         fi
@@ -93,7 +93,7 @@ select option in "${!stateActions[@]}"; do
         . checks/system-pod-state.sh
         ;;
       restart-runtime)
-        PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
+        PS3=$'\e[92mRestarting k8s runtime - choose option: \e[0m'
         restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
         select restart_option in "${restart_options[@]}"; do
           case "$REPLY" in
@@ -119,7 +119,7 @@ select option in "${!stateActions[@]}"; do
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection(mes): \e[0m'
+        PS3=$'\e[92mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

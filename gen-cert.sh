@@ -44,4 +44,4 @@ for file in $(ls . | grep ".pem$"); do mv "$file" "${file%.*}.crt"; done
 
 cd - &> /dev/null
 
-prnt "generated certificate and key for $host($ip)"
+prnt "Generated certificate and key for $host($ip)"

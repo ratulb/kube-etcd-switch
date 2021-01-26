@@ -15,7 +15,7 @@ extEtcdActions+=(['Fresh setup']='fresh-setup')
 extEtcdActions+=(['Cluster view']='cluster-view')
 extEtcdActions+=(['Probe endpoints']='probe-endpoints')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection(mee): \e[0m'
+PS3=$'\e[92mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
 
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 11 -o "$REPLY" -lt 1 ]; then
@@ -43,7 +43,7 @@ select option in "${!extEtcdActions[@]}"; do
                 access='yes'
               fi
               state='N/A'
-              if can_ping_ip $ip; then
+              if can_ping_address $ip; then
                 state='Up'
               fi
               node_info=$host,$ip,$access,$state
@@ -103,7 +103,7 @@ select option in "${!extEtcdActions[@]}"; do
         prnt "Remove nodes"
         read_setup
         if [ ! -z "$etcd_servers" ]; then
-          PS3=$'\e[01;32mChoose one(q to quit): \e[0m'
+          PS3=$'\e[92mChoose one(q to quit): \e[0m'
           unset etcdHostAndIps
           declare -a etcdHostAndIps
           for etcd_node_entry in $etcd_servers; do
@@ -112,7 +112,7 @@ select option in "${!extEtcdActions[@]}"; do
           count=${#etcdHostAndIps[@]}
           select host_and_ip in "${etcdHostAndIps[@]}"; do
             if [ "$REPLY" == 'q' ]; then
-              PS3=$'\e[01;32mSelection(mee): \e[0m'
+              PS3=$'\e[92mSelection(mee): \e[0m'
               break
             fi
             if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt "$count" -o "$REPLY" -lt 1 ]; then
@@ -137,7 +137,7 @@ select option in "${!extEtcdActions[@]}"; do
         else
           err "No etcd node to delete"
         fi
-        PS3=$'\e[01;32mSelection(mee): \e[0m'
+        PS3=$'\e[92mSelection(mee): \e[0m'
         ;;
       etcd-cluster-status)
         . checks/endpoint-liveness-cluster.sh
@@ -152,7 +152,7 @@ select option in "${!extEtcdActions[@]}"; do
         . stop-external-etcds.sh
         ;;
       fresh-setup)
-        PS3=$'\e[01;32mFresh setup: \e[0m'
+        PS3=$'\e[92mFresh setup: \e[0m'
         cat help/ssh-setup.txt
         echo ""
         fresh_setup_options=("Start" "Cancel" "Launch")
@@ -160,21 +160,21 @@ select option in "${!extEtcdActions[@]}"; do
           case "$fresh_setup_option" in
             'Start')
               if [ -f "$HOME/.ssh/id_rsa.pub" ]; then
-                echo "SSH key already exists"
+                prnt "SSH key already exists"
                 cat help/copy-ssh-key.txt
               else
-                echo "SHH key not present - would need to be generated."
+                err "SHH key not present - would need to be generated."
                 cat help/ssh-key-gen.txt
                 err "ssh-keygen"
               fi
               ;;
             'Cancel')
-              prnt "Cancelled setup"
+              prnt "Exited etcd cluster setup"
               break
               ;;
             'Launch')
               echo "Type in the host & ip(s)of etcd cluster nodes - blank line to complete"
-              echo "Example: '$(hostname):$(hostname -i)'"
+              prnt "Example: '$(hostname):$(hostname -i)'"
               rm -f /tmp/etcd_host_and_ips.tmp
               while read line; do
                 [ -z "$line" ] && break
@@ -185,7 +185,7 @@ select option in "${!extEtcdActions[@]}"; do
                 etcd_host_and_ips=$(cat /tmp/etcd_host_and_ips.tmp | tr "\n" " " | xargs)
               fi
               if [ -z "$etcd_host_and_ips" ]; then
-                err "No ip address entered"
+                err "No address entered"
               else
                 unset valid_ips
                 unset invalid_host_or_ips
@@ -218,11 +218,11 @@ select option in "${!extEtcdActions[@]}"; do
                     prnt "Launching cluster for $etcd_host_and_ips"
                     . setup-etcd-cluster.sh $etcd_host_and_ips
                     if [ "$?" -eq 0 ]; then
-                      prnt "Successfully setup etcd cluster on $valid_ips"
+                      debug "Successfully setup etcd cluster on $valid_ips"
                       for entry in $etcd_host_and_ips; do
                         upsert_etcd_server_list $entry
                       done
-                      prnt "Updated etcd server entries with $etcd_host_and_ips"
+                      debug "Updated etcd server entries with $etcd_host_and_ips"
                     else
                       err "Cluster setup failed" && return 1
                     fi
@@ -241,7 +241,7 @@ select option in "${!extEtcdActions[@]}"; do
               ;;
           esac
         done
-        PS3=$'\e[01;32mSelection(mee): \e[0m'
+        PS3=$'\e[92mSelection(mee): \e[0m'
         ;;
 
       refresh-view)
@@ -257,9 +257,8 @@ select option in "${!extEtcdActions[@]}"; do
         exec "$script"
         ;;
       *)
-    echo "$option - The option not yet programmed for" 
+    echo "$option - The option has been disabled" 
 ;;
-
     esac
   fi
 done

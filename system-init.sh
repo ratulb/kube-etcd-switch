@@ -29,7 +29,7 @@ masters_from_query=$(echo $masters_from_query | xargs)
 if [ -z "$masters_from_query" ]; then
   warn "Node $master_node_addr is up - but could not fetch membership information from the cluster"
   OLD_PS3=$PS3
-  PS3=$'\e[01;32mCluster master member(s): \e[0m'
+  PS3=$'\e[92mCluster master member(s): \e[0m'
   user_choices=('Master member(s)' 'Cancel')
   select user_choice in "${user_choices[@]}"; do
     unset user_selected
@@ -132,6 +132,7 @@ else
 fi
 
 sudo apt update
+command_exists fping || apt install -y fping
 . install-cfssl.sh
 sudo apt install tree -y
 sudo apt autoremove -y
@@ -243,6 +244,12 @@ _master_ips=$(echo $_master_ips | xargs)
 debug "_master_ips: $_master_ips"
 sed -i "s/masters=.*/masters=$_master_ips/g" setup.conf
 read_setup
+
+for m in $_master_ips; do
+  if [ "$m" != "$this_host_ip" ]; then
+    remote_script $m install-etcd.script
+  fi
+done
 
 . gen-cert.sh $this_host_name $this_host_ip
 cp $gendir/$(hostname){-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/

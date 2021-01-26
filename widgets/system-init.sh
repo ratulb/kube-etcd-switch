@@ -16,7 +16,7 @@ re="^[0-9]+$"
 unset choices
 if is_master_set; then
   prnt "Master address: $master_address"
-  PS3=$'\e[01;32mSelect(q to quit): \e[0m'
+  PS3=$'\e[92mSelect(q to quit): \e[0m'
   choices=('Initialize system' 'Edit master address and initialize')
   unset user_action
   select choice in "${choices[@]}"; do
@@ -33,7 +33,7 @@ if is_master_set; then
             prnt "Initalizing system..."
             initialize $master_address
             if [ "$?" -eq 0 ]; then
-              prnt "System has been initialized successfully"
+              #prnt "System has been initialized successfully"
               read_setup
             else
               err "System initialization failed"
@@ -56,7 +56,7 @@ if is_master_set; then
             prnt "Initalizing system..."
             initialize $address
             if [ "$?" -eq 0 ]; then
-              prnt "System has been initialized successfully"
+              #prnt "System has been initialized successfully"
               read_setup
             else
               err "System initialization failed"
@@ -77,7 +77,7 @@ else
     prnt "Initalizing system..."
     initialize $address
     if [ "$?" -eq 0 ]; then
-      prnt "System has been initialized successfully"
+      #prnt "System has been initialized successfully"
       read_setup
     else
       err "System initialization failed"

@@ -17,11 +17,11 @@ for ip in $servers; do
     if [ "$this_host_ip" = $ip ]; then
       . start-etcd.script
     else
-      . execute-script-remote.sh $ip start-etcd.script
+      remote_script $ip start-etcd.script
     fi
     if [ "$?" -ne 0 ]; then
       servers_with_etcd_start_issues+="$ip "
-      err "Error while starting etcd @node $ip - etcd start returned failed response"
+      err "Error while starting etcd node($ip) - etcd start returned failed response"
     fi
   else
     err "Can not access host($ip) - etcd server not started on!"

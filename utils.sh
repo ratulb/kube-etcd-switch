@@ -2,7 +2,7 @@
 export usr=$(whoami)
 
 prnt() {
-  echo -e $"\e[01;32m$1\e[0m"
+  echo -e $"\e[92m$1\e[0m"
 }
 
 err() {
@@ -15,13 +15,14 @@ warn() {
 
 debug() {
   if [ ! -z "$debug" ]; then
-    echo -e "\e[46m$1\e[0m"
+    echo -e "\e[36m$1\e[0m"
   fi
 }
 
 #Need further check for duplicate ip and host name
 normalize_etcd_entries() {
-  current_entries=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2 | xargs)
+err "start *********************************"
+      	current_entries=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2 | xargs)
   if [ ! -z "$current_entries" ]; then
     debug "normalize_etcd_entries: current entries: $current_entries"
     normalized_entries=''
@@ -35,6 +36,7 @@ normalize_etcd_entries() {
     debug "normalize_etcd_entries: $normalized_entries"
     sed -i "s|$current_entries|$normalized_entries|g" setup.conf
   fi
+err "End *********************************"
 }
 
 read_setup() {
@@ -92,6 +94,23 @@ read_setup() {
 "normalize_etcd_entries"
 "read_setup"
 
+remote_script() {
+  #prnt "Executing on $1"
+  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 $1 <$2
+}
+remote_cmd() {
+  remote_host=$1
+  if [ -z "$quiet" ]; then
+    : #prnt "Executing command on $remote_host"
+  fi
+  shift
+  args="$@"
+  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=3" $remote_host $args
+}
+remote_copy() {
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o UserKnownHostsFile=/dev/null $1 $2
+}
+
 ask() {
   echo -e "\e[5m$1"
 }
@@ -108,7 +127,8 @@ can_ping_address() {
   fi
   local ip=$1
   debug "Pinging ip $ip"
-  ping -q -c 3 $ip &>/dev/null || return 1
+  #ping -q -c 3 $ip &>/dev/null || return 1
+  fping -c 1 -t 1000 $ip &>/dev/null || return 1
 }
 
 is_address_local() {
@@ -211,9 +231,11 @@ is_host_name_ok() {
 command_exists() {
   command -v "$1" >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    err "$1 not installed. Stopping execution. Has the system been initialized?"
-    exit 1
+    return 1
+  else
+    return 0
   fi
+
 }
 
 can_access_address() {
@@ -232,23 +254,6 @@ can_access_address() {
       (err "Can not access $_addr" && return 1)
     fi
   fi
-}
-remote_script() {
-  #prnt "Executing on $1"
-  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 $1 <$2
-}
-remote_cmd() {
-  remote_host=$1
-  if [ -z "$quiet" ]; then
-    : #prnt "Executing command on $remote_host"
-  fi
-  shift
-  args="$@"
-  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=3" $remote_host $args
-}
-
-remote_copy() {
-  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o UserKnownHostsFile=/dev/null $1 $2
 }
 
 check_file_existence() {
@@ -522,8 +527,8 @@ next_data_dir() {
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
   else
-    count=$(sudo -u $usr ssh $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
-    if [ $count ] >0 && sudo -u $usr ssh $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
+    count=$(remote_cmd $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
+    if [ $count ] >0 && remote_cmd $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
       remote_cmd $1 "ls -l $default_restore_path | grep ^d >list.txt"
       cat list.txt | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
@@ -617,7 +622,7 @@ is_machine_up() {
 }
 
 function postUpMessage() {
-  echo -e "\n\033[1;32m¯\_(ツ)_/¯\033[0m"
+  echo -e "\n\033[92m¯\_(ツ)_/¯\033[0m"
 }
 #kudu's https://stackoverflow.com/questions/12768907/how-can-i-align-the-columns-of-tables-in-bash
 #https://github.com/gdbtek/linux-cookbooks/blob/master/libraries/util.bash
@@ -707,7 +712,7 @@ api_server_pointing_at() {
     if [ "$this_host_ip" = "$master_address" ]; then
       master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
     else
-      master_pointees=$(sudo -u $usr ssh $master_address \
+      master_pointees=$(remote_cmd $master_address \
         "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
     fi
     master_pointees=$(echo $master_pointees | xargs)
@@ -764,4 +769,40 @@ probe_endpoints() {
 
   normalized_endpoints=$(echo $normalized_endpoints | tr ' ' ',')
   export PROBE_ENDPOINTS="$normalized_endpoints"
+}
+
+embedded_etcd_endpoints() {
+  if [ -z "$masters" ]; then
+    err "No master(s) address found. Has the system been initialized?"
+    return 1
+  else
+    unset endpoints
+    for mstr in $masters; do
+      if [ -z "$endpoints" ]; then
+        endpoints=$mstr:2379
+      else
+        endpoints+=",$mstr:2379"
+        export EMBEDDED_ETCD_ENDPOINTS=$endpoints
+      fi
+      debug "Embedded etcd endpoints: $endpoints"
+    done
+  fi
+}
+
+external_etcd_endpoints() {
+  if [ -z "$etcd_ips" ]; then
+    err "No external etcd address found. Has external etcd been setup?"
+    return 1
+  else
+    unset ex_etcd_endpoints
+    for ex_etcd_ip in $etcd_ips; do
+      if [ -z "$ex_etcd_endpoints" ]; then
+        ex_etcd_endpoints=$ex_etcd_ip:2379
+      else
+        ex_etcd_endpoints+=",$ex_etcd_ip:2379"
+        export EXTERNAL_ETCD_ENDPOINTS=$ex_etcd_endpoints
+      fi
+      debug "External etcd endpoints: $ex_etcd_endpoints"
+    done
+  fi
 }

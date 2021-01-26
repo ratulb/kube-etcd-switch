@@ -3,6 +3,7 @@
 command_exists kubectl
 unset cluster_state
 unset cluster_desc
+command_exists fping  || apt install -y fping
 if can_ping_address $master_address; then
   if can_access_address $master_address; then
     if [ ! -z "$debug" ]; then

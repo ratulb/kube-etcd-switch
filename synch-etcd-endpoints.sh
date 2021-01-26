@@ -10,7 +10,7 @@ if [ -z "$cluster_etcd_url" ]; then
 fi
 sed -i "s|$current_url|$cluster_etcd_url|g" kube.draft
 
-if [ "$this_host_ip" = $master_ip ]; then
+if [ "$this_host_ip" = "$master_ip" ]; then
   mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
 else
   sudo -u $usr scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \

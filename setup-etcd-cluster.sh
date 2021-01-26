@@ -25,13 +25,13 @@ for host_and_ip in $servers; do
     cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
   else
     prnt "Installing etcd/creating default directories on host($ip)"
-    . execute-script-remote.sh $ip install-etcd.script
+    remote_script $ip install-etcd.script
     dress_up_script prepare-etcd-dirs.script
-    . execute-script-remote.sh $ip prepare-etcd-dirs.script.tmp
+    remote_script $ip prepare-etcd-dirs.script.tmp
     prnt "Copying certs to remote machine $ip"
     . copy-certs.sh $host $ip
   fi
-  rm prepare-etcd-dirs.script.tmp
+  rm -f prepare-etcd-dirs.script.tmp
 done
 
-prnt "Etcd cluster has been setup successfully on servers."
+prnt "Successfully setup etcd cluster on $servers"

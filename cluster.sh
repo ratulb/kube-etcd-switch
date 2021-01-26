@@ -17,7 +17,7 @@ clusterActions+=(['Stop embedded etcd']='stop-embedded-etcd')
 clusterActions+=(['Start embedded etcd']='start-embedded-etcd')
 clusterActions+=(['Console']='console')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection(mec): \e[0m'
+PS3=$'\e[92mSelection(mec): \e[0m'
 select option in "${!clusterActions[@]}"; do
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 13 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
@@ -28,7 +28,7 @@ select option in "${!clusterActions[@]}"; do
         ;;
       setup-kube-cluster)
         ./setup-kube-cluster.sh
-        PS3=$'\e[01;32mSelection(mec): \e[0m'
+        PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
       stop-embedded-etcd)
         prnt "Stopping embedded etcd"
@@ -36,7 +36,7 @@ select option in "${!clusterActions[@]}"; do
         ;;
       console)
         ./console.sh
-        PS3=$'\e[01;32mSelection(mec): \e[0m'
+        PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
       start-embedded-etcd)
         . start-embedded-etcd.sh
@@ -63,13 +63,13 @@ select option in "${!clusterActions[@]}"; do
           fi
         fi
         echo ""
-        PS3=$'\e[01;32mSelection(mec): \e[0m'
+        PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
       pod-state)
         . checks/system-pod-state.sh
         ;;
       restart-runtime)
-        PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
+        PS3=$'\e[92mRestarting k8s runtime - choose option: \e[0m'
         restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
         select restart_option in "${restart_options[@]}"; do
           case "$REPLY" in
@@ -99,7 +99,7 @@ select option in "${!clusterActions[@]}"; do
           esac
         done
         echo ""
-        PS3=$'\e[01;32mSelection(mec) \e[0m'
+        PS3=$'\e[92mSelection(mec) \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")
