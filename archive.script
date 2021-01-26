@@ -18,9 +18,9 @@ if [ -f /etc/systemd/system/etcd.service ]; then
   cp /etc/systemd/system/etcd.service $kube_vault/system-snap/etc/systemd/system/
 fi  
 
-cd $kube_vault/system-snap/
+cd $kube_vault/system-snap/ &>/dev/null
 
-tar cfz system-snap.tar.gz etc
+tar cfz system-snap.tar.gz etc 
 
-cd -
+cd - &>/dev/null
 
