@@ -90,6 +90,14 @@ read_setup() {
 "normalize_etcd_entries"
 "read_setup"
 
+ca_exists() {
+  err_msg="Can not find etcd ca - can not proceed! Has the system been initialized?"
+  ([ -s "$etcd_ca" ] && [ -s "$etcd_key" ]) || (err "$err_msg" && return 1)
+}
+client_cert_exists() {
+  ([ -s /etc/kubernetes/pki/etcd/$(hostname)-client.crt ] && [ -s /etc/kubernetes/pki/etcd/$(hostname)-client.key ]) || (err "API client cert/key missing" && return 1)
+}
+
 remote_script() {
   #prnt "Executing on $1"
   sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 $1 <$2
@@ -533,7 +541,7 @@ next_data_dir() {
   prnt "Next data dir for snapshot restore : $(basename $NEXT_DATA_DIR)($1)"
   debug "Next data dir for snapshot restore : $NEXT_DATA_DIR($1)"
 }
-
+#NG
 api_server_etcd_url() {
   _etcd_servers=''
   for ip in $etcd_ips; do
@@ -557,7 +565,7 @@ api_server_etcd_url() {
   fi
 
 }
-
+#NG
 etcd_initial_cluster() {
   initial_cluster=''
   for svr in $etcd_servers; do
@@ -765,6 +773,7 @@ probe_endpoints() {
 }
 
 embedded_etcd_endpoints() {
+  unset EMBEDDED_ETCD_ENDPOINTS
   if [ -z "$masters" ]; then
     err "No master(s) address found. Has the system been initialized?"
     return 1
@@ -781,21 +790,70 @@ embedded_etcd_endpoints() {
     debug "Embedded etcd endpoints: $endpoints"
   fi
 }
-
-external_etcd_endpoints() {
-  if [ -z "$etcd_ips" ]; then
-    err "No external etcd address found. Has external etcd been setup?"
+em_endpoint_list() {
+  unset EMBEDDED_ETCD_ENDPOINT
+  if ! embedded_etcd_endpoints; then
     return 1
   else
-    unset ex_etcd_endpoints
-    for ex_etcd_ip in $etcd_ips; do
-      if [ -z "$ex_etcd_endpoints" ]; then
-        ex_etcd_endpoints=$ex_etcd_ip:2379
+    prnt "Checking embedded cluster endpoins..."
+    rm -f /tmp/embedded-etcd-ep-status.txt
+    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
+      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
+      --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list | tee /tmp/embedded-etcd-ep-status.txt
+    if [ "$?" -eq 0 ]; then
+      end_point=$(cat /tmp/embedded-etcd-ep-status.txt | head -n 1 | cut -d',' -f5 | xargs)
+      export EMBEDDED_ETCD_ENDPOINT=$end_point
+    else
+      err "Etcd member list error"
+      return 1
+    fi
+  fi
+}
+
+external_etcd_endpoints() {
+  unset EXTERNAL_ETCD_ENDPOINTS
+  unset ETCD_INITIAL_CLUSTER
+  if [ -z "$etcd_servers" ]; then
+    err "No external etcd server(s) found. Has external etcd been setup?"
+    return 1
+  else
+    unset etcd_endpoints
+    unset initial_cluster
+    for svr in $etcd_servers; do
+      host=$(echo $svr | cut -d ':' -f1)
+      ip=$(echo $svr | cut -d ':' -f2)
+      if [ -z "$etcd_endpoints" ]; then
+        etcd_endpoints=$ip:2379
+        initial_cluster=$host=https://$ip:2380
       else
-        ex_etcd_endpoints+=",$ex_etcd_ip:2379"
+        etcd_endpoints+=,$ip:2379
+        initial_cluster+=,$host=https://$ip:2380
       fi
     done
-    export EXTERNAL_ETCD_ENDPOINTS=$ex_etcd_endpoints
-    debug "External etcd endpoints: $ex_etcd_endpoints"
+    export EXTERNAL_ETCD_ENDPOINTS=$etcd_endpoints
+    export ETCD_INITIAL_CLUSTER=$initial_cluster
+    debug "etcd initial cluster: $ETCD_INITIAL_CLUSTER"
+    debug "External etcd endpoints: $etcd_endpoints"
+  fi
+}
+
+ex_endpoint_list() {
+  if ! external_etcd_endpoints; then
+    return 1
+  else
+    prnt "Checking external cluster endpoints"
+    rm -f /tmp/external-etcd-ep-status.txt
+    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
+      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
+      --endpoints=$EXTERNAL_ETCD_ENDPOINTS member list | tee /tmp/external-etcd-ep-status.txt
+    if [ "$?" -eq 0 ]; then
+      end_point=$(cat /tmp/external-etcd-ep-status.txt | head -n 1 | cut -d',' -f5 | xargs)
+      export EXTERNAL_ETCD_ENDPOINT=$end_point
+    else
+      err "Etcd member list error"
+      return 1
+    fi
   fi
 }
