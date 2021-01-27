@@ -5,8 +5,7 @@ user_options=('Embedded etcd' 'External etcd' 'Back')
 select user_option in "${user_options[@]}"; do
   case "$user_option" in
     'Embedded etcd')
-      . checks/ep-state-embedded.sh
-      if [ "$?" -eq 0 ]; then
+      if em_endpoint_list; then
         unset fileName
         while [[ -z "$fileName" ]] && [[ ! "$fileName" = "q" ]]; do
           read -p 'Snapshot name(q - quit): ' fileName
@@ -15,7 +14,7 @@ select user_option in "${user_options[@]}"; do
         if [ "$fileName" = "q" ]; then
           prnt "Cancelled snapshot save"
         else
-          . save-snapshot-em.sh $fileName
+          . save-snapshot.sh $fileName 'embedded'
           break && return 0
         fi
       else
@@ -24,8 +23,7 @@ select user_option in "${user_options[@]}"; do
       fi
       ;;
     'External etcd')
-      . checks/ep-state-external.sh
-      if [ "$?" -eq 0 ]; then
+      if ex_endpoint_list; then
         unset fileName
         while [[ -z "$fileName" ]] && [[ ! "$fileName" = "q" ]]; do
           read -p 'Snapshot name(q - quit): ' fileName
@@ -34,7 +32,7 @@ select user_option in "${user_options[@]}"; do
         if [ "$fileName" = "q" ]; then
           prnt "Cancelled snapshot save"
         else
-          . save-snapshot-ex.sh $fileName
+          . save-snapshot.sh $fileName 'external'
           break && return 0
         fi
       else
