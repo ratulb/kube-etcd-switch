@@ -150,19 +150,19 @@ is_master_set() {
 }
 
 upsert_etcd_server_list() {
-  local node_being_added=$1
-  local old_etcd_servers=$(cat setup.conf | grep etcd_servers= | cut -d '=' -f 2)
-  old_etcd_servers=$(echo $old_etcd_servers | xargs)
-  if [[ "$old_etcd_servers" = *"$node_being_added"* ]]; then
-    debug "Node being added is already present in system configuration!"
-  else
-    debug "Appending node being added $node_being_added"
-    replacement="$old_etcd_servers $node_being_added"
-    replacement=$(echo $replacement | xargs)
-    debug "The replacement is: $replacement"
-    sed -i "s/etcd_servers=.*/etcd_servers=$replacement/g" setup.conf
-    debug "etcd server configuration is updated with $node_being_added"
-  fi
+  local nodes_being_added=$@
+  existing_nodes=$etcd_servers
+  in_all="$existing_nodes $nodes_being_added"
+  in_all=$(echo $in_all | xargs)
+  accessible_de_duplicated=''
+  for entry in $in_all; do
+    entry_ip=$(echo $entry | cut -d':' -f2)
+    if can_access_address $entry_ip && ! [[ "$accessible_de_duplicated" = *"$entry"* ]]; then
+      accessible_de_duplicated+="$entry "
+    fi
+  done
+  accessible_de_duplicated=$(echo $accessible_de_duplicated | xargs)
+  sed -i "s/etcd_servers=.*/etcd_servers=$accessible_de_duplicated/g" setup.conf
   read_setup
 }
 
@@ -278,10 +278,7 @@ check_file_existence() {
 }
 
 check_system_init_reqrmnts_met() {
-  required_files="/etc/kubernetes/pki/apiserver-etcd-client.crt /etc/kubernetes/pki/apiserver-etcd-client.key /etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/manifests/kube-apiserver.yaml $HOME/.kube/config"
-  if [ -z "$2" ]; then
-    local required_files="$required_files /etc/kubernetes/manifests/etcd.yaml"
-  fi
+  required_files="/etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/ca.key $HOME/.kube/config"
   check_file_existence $1 $required_files || return 1
 }
 

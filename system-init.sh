@@ -22,6 +22,9 @@ fi
 
 prnt "Setting up kubectl on $this_host_ip"
 . setup-kubectl.sh $master_node_addr
+if [ "$?" -ne 0 ]; then
+  return 1
+fi
 j_path='{.items[*].metadata.name}{"\t"}{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
 masters_from_query=$(kubectl get nodes --request-timeout "3s" --selector=node-role.kubernetes.io/control-plane -ojsonpath="$j_path")
 masters_from_query=$(echo $masters_from_query | xargs)

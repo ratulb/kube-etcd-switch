@@ -20,6 +20,6 @@ for ip in $server_ips; do
   remote_cmd $ip "ls -la &>/dev/null"
   if [ ! "$?" = 0 ]; then
     err "Could not access $ip. Not proceeding!"
-    exit 1
+    return 1
   fi
 done

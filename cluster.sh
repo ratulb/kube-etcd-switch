@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
+echo ""
 prnt "Manage etcd cluster(mec)"
 declare -A clusterActions
 clusterActions+=(['Quit']='quit')
@@ -44,6 +45,7 @@ select option in "${!clusterActions[@]}"; do
       external-etcd)
         echo "External etcd"
         . widgets/external-etcd.sh
+        PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
       system-init)
         . checks/cluster-state.sh

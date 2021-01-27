@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 clear
+echo ""
 prnt "Manage external etcd(mee)"
 declare -A extEtcdActions
 extEtcdActions+=(['Quit']='quit')
@@ -153,9 +154,9 @@ select option in "${!extEtcdActions[@]}"; do
         ;;
       fresh-setup)
         PS3=$'\e[92mFresh setup: \e[0m'
-        cat help/ssh-setup.txt
-        echo ""
-        fresh_setup_options=("Start" "Cancel" "Launch")
+        #cat help/ssh-setup.txt
+        #echo ""
+        fresh_setup_options=('Launch' 'Back')
         select fresh_setup_option in "${fresh_setup_options[@]}"; do
           case "$fresh_setup_option" in
             'Start')
@@ -168,8 +169,10 @@ select option in "${!extEtcdActions[@]}"; do
                 err "ssh-keygen"
               fi
               ;;
-            'Cancel')
+            'Back')
               prnt "Exited etcd cluster setup"
+              PS3=$'\e[92mSelection(mee): \e[0m'
+              echo ""
               break
               ;;
             'Launch')
@@ -216,13 +219,9 @@ select option in "${!extEtcdActions[@]}"; do
                   done
                   if [ -z "$not_accessible_ips" ]; then
                     prnt "Launching cluster for $etcd_host_and_ips"
-                    . setup-etcd-cluster.sh $etcd_host_and_ips
+                    . setup-etcd-cluster.sh "$etcd_host_and_ips"
                     if [ "$?" -eq 0 ]; then
-                      debug "Successfully setup etcd cluster on $valid_ips"
-                      for entry in $etcd_host_and_ips; do
-                        upsert_etcd_server_list $entry
-                      done
-                      debug "Updated etcd server entries with $etcd_host_and_ips"
+                      prnt "Successfully setup etcd cluster on $valid_ips"
                     else
                       err "Cluster setup failed" && return 1
                     fi
@@ -241,7 +240,7 @@ select option in "${!extEtcdActions[@]}"; do
               ;;
           esac
         done
-        PS3=$'\e[92mSelection(mee): \e[0m'
+        #PS3=$'\e[92mSelection(mee): \e[0m'
         ;;
 
       refresh-view)
@@ -250,15 +249,15 @@ select option in "${!extEtcdActions[@]}"; do
         ;;
       quit)
         prnt "quit"
-        break 2
+        break 1
         ;;
       cluster-view)
         script=$(readlink -f "cluster.sh")
         exec "$script"
         ;;
       *)
-    echo "$option - The option has been disabled" 
-;;
+        echo "$option - The option has been disabled"
+        ;;
     esac
   fi
 done
