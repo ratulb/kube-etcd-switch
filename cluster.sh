@@ -13,7 +13,7 @@ clusterActions+=(['Snapshot view']='snapshot-view')
 clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
 clusterActions+=(['Setup kubernetes cluster']='setup-kube-cluster')
-clusterActions+=(['External etcd']='external-etcd')
+clusterActions+=(['Manage etcd']='manage-etcd')
 clusterActions+=(['Stop embedded etcd']='stop-embedded-etcd')
 clusterActions+=(['Start embedded etcd']='start-embedded-etcd')
 clusterActions+=(['Console']='console')
@@ -42,9 +42,9 @@ select option in "${!clusterActions[@]}"; do
       start-embedded-etcd)
         . start-embedded-etcd.sh
         ;;
-      external-etcd)
-        echo "External etcd"
-        . widgets/external-etcd.sh
+      manage-etcd)
+        echo "Manage etcd"
+        . widgets/manage-etcd.sh
         PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
       system-init)
