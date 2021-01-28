@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
+echo ""
 if saved_snapshot_exists; then
   prnt "Restore snapshot for:"
   declare -A clusters
@@ -46,6 +47,7 @@ if saved_snapshot_exists; then
     debug "User has selected $usr_cluster and $usr_snapshot."
     . checks/confirm-action.sh "Proceed(y)" "Cancelled snapshot restore"
     if [ "$?" -eq 0 ]; then
+      echo ""
       [ "$usr_cluster" == 'embedded-up' ] && . restore-snapshot@masters.sh "$usr_snapshot"
       [ "$usr_cluster" == 'external-up' ] && . restore-snapshot@ext-etcd-nodes.sh "$usr_snapshot"
     fi

@@ -3,7 +3,6 @@
 clear
 prnt "Manage etcd states(mes)"
 declare -A stateActions
-stateActions+=(['Quit']='quit')
 stateActions+=(['Save current etcd state']='save')
 stateActions+=(['Delete all or selected states']='delete')
 stateActions+=(['Restore a saved state']='restore')
@@ -12,12 +11,12 @@ stateActions+=(['Restore last good external etcd state']='last-external')
 stateActions+=(['Restore last good embedded etcd state']='last-embedded')
 stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
-stateActions+=(['Cluster view']='cluster-view')
+stateActions+=(['Back to cluster view']='cluster-view')
 re="^[0-9]+$"
 PS3=$'\e[92mSelection(mes): \e[0m'
 select option in "${!stateActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${stateActions[$option]}" in

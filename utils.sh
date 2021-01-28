@@ -709,18 +709,23 @@ function trimString() {
 
 api_server_pointing_at() {
   master_pointees=''
-  if [ ! -z "$master_address" ]; then
-    if [ "$this_host_ip" = "$master_address" ]; then
-      master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
-    else
-      master_pointees=$(remote_cmd $master_address \
-        "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
-    fi
-    master_pointees=$(echo $master_pointees | xargs)
-    debug "kubernetes master is pointing at: $master_pointees"
-    export API_SERVER_POINTING_AT="$master_pointees"
+  if [ ! -z "$masters" ]; then
+    rm -f /tmp/kube-masters-etcd-ep.txt
+    prnt "Api server etcd endpoints:"
+    for mstr in $masters; do
+      if [ "$this_host_ip" = "$mstr" ]; then
+        master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
+        echo "$this_host_name($mstr) is pointing at -> $master_pointees" >>/tmp/kube-masters-etcd-ep.txt
+      else
+        _hostname=$(remote_cmd $mstr hostname)
+        master_pointees=$(remote_cmd $mstr \
+          "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
+        echo "$_hostname($mstr) is pointing at -> $master_pointees" >>/tmp/kube-masters-etcd-ep.txt
+      fi
+    done
+    cat /tmp/kube-masters-etcd-ep.txt
   else
-    err "kube master_address not set"
+    err "kube master(s)  not set - System may have been initialized yet"
   fi
 }
 
@@ -824,10 +829,11 @@ external_etcd_endpoints() {
       host=$(echo $svr | cut -d ':' -f1)
       ip=$(echo $svr | cut -d ':' -f2)
       if [ -z "$etcd_endpoints" ]; then
-        etcd_endpoints=$ip:2379
+        etcd_endpoints=https://$ip:2379
         initial_cluster=$host=https://$ip:2380
       else
-        etcd_endpoints+=,$ip:2379
+        etcd_endpoints+=,https://$ip:2379
+        #The following needs to be used in systemd conf
         initial_cluster+=,$host=https://$ip:2380
       fi
     done
@@ -856,4 +862,7 @@ ex_endpoint_list() {
       return 1
     fi
   fi
+}
+etcd_cmd() {
+  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key $@
 }

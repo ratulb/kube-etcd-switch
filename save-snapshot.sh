@@ -26,10 +26,7 @@ if ca_exists && client_cert_exists; then
 
   . checks/confirm-action.sh "Proceed(y)" "Cancelled snapshot save."
   if [ "$?" -eq 0 ]; then
-    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
-      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-      --endpoints=$endpoint snapshot save $ETCD_SNAPSHOT &>/tmp/snapshot-save-mgs.txt
+     etcd_cmd --endpoints=$endpoint snapshot save $ETCD_SNAPSHOT &>/tmp/snapshot-save-mgs.txt
     echo ""
     prnt "etcd snapshot saved at $(basename $ETCD_SNAPSHOT) and status is:"
     etcdctl snapshot status $ETCD_SNAPSHOT --write-out=table

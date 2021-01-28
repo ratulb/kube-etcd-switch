@@ -7,8 +7,7 @@ fi
 . checks/snapshot-existence.sh
 . checks/snapshot-validity.sh
 etcd_snapshot=$1
-prnt "Restoring $(basename $etcd_snapshot) for embedded etcd."
-debug "Restoring $etcd_snapshot for embedded etcd."
+prnt "Restoring $etcd_snapshot for embedded etcd."
 
 rm $gendir/.token &>/dev/null
 token=''
@@ -20,7 +19,7 @@ fi
 
 if [ ! -z "$masters" ]; then
   for _mstr_ip in $masters; do
-    debug "Restoring $(basename $etcd_snapshot) for master member $_mstr_ip"
+    prnt "Restoring $(basename $etcd_snapshot) for master member $_mstr_ip"
     . copy-snapshot.sh $etcd_snapshot $_mstr_ip
     . checks/snapshot-validity@destination.sh $_mstr_ip $etcd_snapshot
 
@@ -30,7 +29,7 @@ if [ ! -z "$masters" ]; then
     debug "Restoring at location: ${restore_path} for master member $_mstr_ip"
 
     . restore-snapshot.sh $etcd_snapshot $restore_path $token $_mstr_ip
-    . remove-admitted-node.sh $_mstr_ip
+    . remove-admitted-node.sh $_mstr_ip 'external'
     unset _hostname
     if is_address_local $_mstr_ip; then
       _hostname=$this_host_name

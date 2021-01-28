@@ -25,8 +25,7 @@ if [ $exit_code != 0 ]; then
   err "Snapshot restore failed!"
   exit $exit_code
 fi
-debug "Snapshot($snapshot_file) has been applied @$data_dir in machine($machine_ip) successfully"
-prnt "Snapshot $(basename $snapshot_file) has been applied @$(basename $data_dir) in machine($machine_ip) successfully"
+prnt "Snapshot $snapshot_file has been applied at node($machine_ip) successfully"
 if [ -z "$debug" ]; then
   rm etcd-restore-cluster.script.tmp
 fi

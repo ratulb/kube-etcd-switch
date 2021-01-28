@@ -22,6 +22,5 @@
     err "Snapshot restore failed!"
     exit $exit_code
   fi
-  debug "Snapshot($snapshot_file) has been applied @$data_dir in machine($machine_ip) successfully"
+  prnt "Snapshot($snapshot_file) has been applied at node($machine_ip) successfully"
   rm etcd-restore.script.tmp
-  prnt "Restored snapshot on $machine_ip"

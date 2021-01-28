@@ -15,7 +15,7 @@ else
   remote_copy $_master_ip:/etc/kubernetes/manifests/etcd.yaml etcd.draft
   remote_copy $_master_ip:/etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
 fi
-#TODO Need a stronger way to do find replace
+#TODO Need a stronger/fail proof way to do find replace
 mount_path=$(cat etcd.draft | grep volumeMounts: -A1 | grep '\- mountPath:' | xargs | cut -d' ' -f3)
 sed -i "s|$mount_path|$data_dir|g" etcd.draft
 host_path=$(cat etcd.draft | tail -n4 | grep path: | xargs | cut -d' ' -f2)

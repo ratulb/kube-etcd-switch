@@ -3,19 +3,18 @@
 clear
 prnt "Manage etcd snapshots(mes)"
 declare -A snapshotActions
-snapshotActions+=(['Quit']='quit')
 snapshotActions+=(['Refresh view']='refresh-view')
 snapshotActions+=(['Save snapshot']='save')
 snapshotActions+=(['Delete all or selected snapshots']='delete')
 snapshotActions+=(['Restore snapshot']='restore')
 snapshotActions+=(['List snapshots']='list')
 snapshotActions+=(['State view']='state-view')
-snapshotActions+=(['Cluster view']='cluster-view')
+snapshotActions+=(['Back to cluster view']='cluster-view')
 re="^[0-9]+$"
 PS3=$'\e[92mSelection(mes): \e[0m'
 select action in "${!snapshotActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 7 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${snapshotActions[$action]}" in
