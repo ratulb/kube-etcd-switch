@@ -13,12 +13,11 @@ extEtcdActions+=(['Stop etcd cluster']='stop-etcd-cluster')
 extEtcdActions+=(['Refresh view']='refresh-view')
 extEtcdActions+=(['Fresh setup']='fresh-setup')
 extEtcdActions+=(['Back to cluster view']='cluster-view')
-extEtcdActions+=(['Probe endpoints']='probe-endpoints')
 re="^[0-9]+$"
 PS3=$'\e[92mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${extEtcdActions[$option]}" in
