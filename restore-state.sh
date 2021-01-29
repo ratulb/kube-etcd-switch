@@ -3,7 +3,7 @@
 
 if [ -z $1 ]; then
   err "Usage $0 embedded-up|external-up|matching prefix|listed fileName."
-  exit 1
+  return 1
 fi
 last_saved_state $1
 

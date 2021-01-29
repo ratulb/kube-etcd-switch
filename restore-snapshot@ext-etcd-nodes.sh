@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 
-if external_etcd_endpoints; then
+if ext_etcd_endpoints; then
   if [ "$#" -ne 1 ]; then
     err "Usage: $0 snapshot file name"
     return 1
@@ -32,7 +32,7 @@ if external_etcd_endpoints; then
       fi
       next_data_dir $ip
       restore_path=$NEXT_DATA_DIR
-      . restore-snapshot-cluster.sh $etcd_snapshot $restore_path $token $ip $etcd_initial_cluster
+      . restore-snapshot.sh $etcd_snapshot $restore_path $token $ip $etcd_initial_cluster
       unset restore_path
     else
       err "Could not access host($ip) - restore artifacts not copied to!"
@@ -47,7 +47,7 @@ if external_etcd_endpoints; then
   . switch-to-etcd-cluster.sh $etcd_ips
   . checks/system-pod-state.sh 5 3
   etcd_pods=''
-  for master_name in "$masters"; do
+  for master_name in "$master_names"; do
     etcd_pods+="etcd-$master_name "
   done
   etcd_pods=$(echo $etcd_pods | xargs)

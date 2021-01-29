@@ -5,7 +5,7 @@ user_options=('Embedded etcd' 'External etcd' 'Back')
 select user_option in "${user_options[@]}"; do
   case "$user_option" in
     'Embedded etcd')
-      if em_endpoint_list; then
+      if em_ep_state_and_list; then
         unset fileName
         while [[ -z "$fileName" ]] && [[ ! "$fileName" = "q" ]]; do
           read -p 'Snapshot name(q - quit): ' fileName
@@ -23,7 +23,7 @@ select user_option in "${user_options[@]}"; do
       fi
       ;;
     'External etcd')
-      if ex_endpoint_list; then
+      if ex_ep_state_and_list; then
         unset fileName
         while [[ -z "$fileName" ]] && [[ ! "$fileName" = "q" ]]; do
           read -p 'Snapshot name(q - quit): ' fileName

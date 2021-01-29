@@ -14,8 +14,8 @@ clusterActions+=(['State view']='state-view')
 clusterActions+=(['System init']='system-init')
 clusterActions+=(['Setup kubernetes cluster']='setup-kube-cluster')
 clusterActions+=(['Manage etcd']='manage-etcd')
-clusterActions+=(['Stop embedded etcd']='stop-embedded-etcd')
-clusterActions+=(['Start embedded etcd']='start-embedded-etcd')
+clusterActions+=(['Suspend embedded etcd']='suspend-embedded-etcd')
+clusterActions+=(['Resume embedded etcd']='resume-embedded-etcd')
 clusterActions+=(['Console']='console')
 re="^[0-9]+$"
 PS3=$'\e[92mSelection(mec): \e[0m'
@@ -31,16 +31,17 @@ select option in "${!clusterActions[@]}"; do
         ./setup-kube-cluster.sh
         PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
-      stop-embedded-etcd)
-        prnt "Stopping embedded etcd"
-        . stop-embedded-etcd.sh
+      suspend-embedded-etcd)
+        prnt "Suspending embedded etcd"
+        . suspend-embedded-etcd.sh
         ;;
       console)
         ./console.sh
         PS3=$'\e[92mSelection(mec): \e[0m'
         ;;
-      start-embedded-etcd)
-        . start-embedded-etcd.sh
+      resume-embedded-etcd)
+	prnt "Resuming embedded etcd"
+        . resume-embedded-etcd.sh
         ;;
       manage-etcd)
         echo "Manage etcd"

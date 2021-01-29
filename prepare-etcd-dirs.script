@@ -1,11 +1,11 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
 mkdir -p /etc/kubernetes/pki/etcd
-default_backup_loc=${backup_loc:-$1}
-default_restore_path=${restore_path:-$2}
+default_backup_loc=$backup_loc
+default_restore_path=$restore_path
 if [ ! -z "$default_backup_loc" ]; then
-	mkdir -p $default_backup_loc
+  mkdir -p $default_backup_loc
 fi
 if [ ! -z "$default_restore_path" ]; then
-        mkdir -p $default_restore_path
+  mkdir -p $default_restore_path
 fi
 echo "Created etcd data directories on host $(hostname -i)"

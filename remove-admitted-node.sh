@@ -7,9 +7,9 @@ fi
 node_ip=$1
 cluster=$2
 unset ENDPOINTS
-if [[ "$cluster" = 'external' ]] && external_etcd_endpoints; then
+if [[ "$cluster" = 'external' ]] && ext_etcd_endpoints; then
   ENDPOINTS=$EXTERNAL_ETCD_ENDPOINTS
-elif [[ "$cluster" = 'embedded' ]] && embedded_etcd_endpoints; then
+elif [[ "$cluster" = 'embedded' ]] && emd_etcd_endpoints; then
   ENDPOINTS=$EMBEDDED_ETCD_ENDPOINTS
 else
   err "No cluster endpoint(s) for $cluster. Node($node_ip) not removed"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
-if external_etcd_endpoints; then
+if ext_etcd_endpoints; then
   if [ $# = 0 ]; then
     if [ -z "$debug" ]; then
       etcd_cmd --endpoints=$EXTERNAL_ETCD_ENDPOINTS member list 2>/dev/null

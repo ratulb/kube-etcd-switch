@@ -38,8 +38,10 @@ normalize_etcd_entries() {
 }
 
 read_setup() {
-  etcd_ips=''
-  etcd_names=''
+  unset etcd_ips
+  unset etcd_names
+  unset master_ips
+  unset master_names
   while IFS="=" read -r key value; do
     case "$key" in
       "etcd_servers") export etcd_servers="$value" ;;
@@ -59,26 +61,28 @@ read_setup() {
   if [ -z "$masters" ]; then
     warn "No masters found in setup.conf"
   else
-    export master_address=$(echo $masters | cut -d' ' -f1)
+    export master_address=$(echo $masters | cut -d' ' -f1 | cut -d':' -f2)
+    for mstr in $masters; do
+      mstr_name=$(echo $mstr | cut -d':' -f1)
+      mstr_ip=$(echo $mstr | cut -d':' -f2)
+      master_names+="$mstr_name "
+      master_ips+="$mstr_ip "
+    done
+    export master_names=$(echo $master_names | xargs)
+    export master_ips=$(echo $master_ips | xargs)
   fi
 
   if [ -z "$etcd_servers" ]; then
     warn "No etcd servers found in setup.conf"
   else
     for svr in $etcd_servers; do
-      pair=(${svr//:/ })
-      etcd_name=${pair[0]}
-      etcd_ip=${pair[1]}
-      if [ -z "$etcd_ips" ]; then
-        etcd_ips=$etcd_ip
-        etcd_names=$etcd_name
-      else
-        etcd_ips+=' '$etcd_ip
-        etcd_names+=' '$etcd_name
-      fi
+      etcd_name=$(echo $svr | cut -d':' -f1)
+      etcd_ip=$(echo $svr | cut -d':' -f2)
+      etcd_ips+="$etcd_ip "
+      etcd_names+="$etcd_name "
     done
-    export etcd_ips=$etcd_ips
-    export etcd_names=$etcd_names
+    export etcd_ips=$(echo $etcd_ips | xargs)
+    export etcd_names=$(echo $etcd_names | xargs)
   fi
 
   export this_host_ip=$(echo $(hostname -i) | cut -d ' ' -f 1)
@@ -100,7 +104,7 @@ client_cert_exists() {
 
 remote_script() {
   #prnt "Executing on $1"
-  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 $1 <$2
+  sudo -u $usr ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 $1 <$2
 }
 remote_cmd() {
   remote_host=$1
@@ -109,14 +113,10 @@ remote_cmd() {
   fi
   shift
   args="$@"
-  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=5" $remote_host $args
+  sudo -u $usr ssh -q -o "StrictHostKeyChecking=no" -o "ConnectTimeout=3" $remote_host $args
 }
 remote_copy() {
-  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null $1 $2
-}
-
-ask() {
-  echo -e "\e[5m$1"
+  sudo -u $usr scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o UserKnownHostsFile=/dev/null $1 $2
 }
 
 #Whatever is the default sleep_time
@@ -126,13 +126,17 @@ sleep_few_secs() {
 }
 
 can_ping_address() {
-  if is_address_local $1; then
-    return 0
+  if is_ip $1 || is_host_name_ok $1; then
+    if is_address_local $1; then
+      return 0
+    fi
+    local ip=$1
+    debug "Pinging ip $ip"
+    #ping -q -c 3 $ip &>/dev/null || return 1
+    fping -c 1 -t 1000 $ip &>/dev/null || return 1
+  else
+    return 1
   fi
-  local ip=$1
-  debug "Pinging ip $ip"
-  #ping -q -c 3 $ip &>/dev/null || return 1
-  fping -c 1 -t 1000 $ip &>/dev/null || return 1
 }
 
 is_address_local() {
@@ -165,7 +169,7 @@ upsert_etcd_server_list() {
   accessible_de_duplicated=''
   for entry in $in_all; do
     entry_ip=$(echo $entry | cut -d':' -f2)
-    if can_access_address $entry_ip && ! [[ "$accessible_de_duplicated" = *"$entry"* ]]; then
+    if can_access_address $entry_ip && ! [[ "$accessible_de_duplicated" =~ "$entry" ]]; then
       accessible_de_duplicated+="$entry "
     fi
   done
@@ -182,7 +186,7 @@ prune_etcd_server_list() {
   old_etcd_servers=$(echo $old_etcd_servers | xargs)
   new_server_list=''
   for node in $old_etcd_servers; do
-    if ! [[ "$nodes_being_deleted" = *"$node"* ]]; then
+    if ! [[ "$nodes_being_deleted" =~ "$node" ]]; then
       new_server_list+=" $node"
     fi
   done
@@ -593,19 +597,13 @@ dress_up_script() {
       sed -i "3ibackup_loc=$default_backup_loc" prepare-etcd-dirs.script.tmp
       sed -i "4irestore_path=$default_restore_path" prepare-etcd-dirs.script.tmp
       ;;
+
     etcd-restore.script)
       cp etcd-restore.script etcd-restore.script.tmp
       sed -i "s|#ETCD_SNAPSHOT#|$2|g" etcd-restore.script.tmp
       sed -i "s|#RESTORE_PATH#|$3|g" etcd-restore.script.tmp
       sed -i "s|#TOKEN#|$4|g" etcd-restore.script.tmp
-      ;;
-
-    etcd-restore-cluster.script)
-      cp etcd-restore-cluster.script etcd-restore-cluster.script.tmp
-      sed -i "s|#ETCD_SNAPSHOT#|$2|g" etcd-restore-cluster.script.tmp
-      sed -i "s|#RESTORE_PATH#|$3|g" etcd-restore-cluster.script.tmp
-      sed -i "s|#TOKEN#|$4|g" etcd-restore-cluster.script.tmp
-      sed -i "s|#INITIAL_CLUSTER#|$5|g" etcd-restore-cluster.script.tmp
+      sed -i "s|#INITIAL_CLUSTER#|$5|g" etcd-restore.script.tmp
       ;;
     *)
       echo "Not my case!"
@@ -706,13 +704,15 @@ function trimString() {
   local -r string="${1}"
   sed 's,^[[:blank:]]*,,' <<<"${string}" | sed 's,[[:blank:]]*$,,'
 }
-
+etcd_cmd() {
+  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key $@
+}
 api_server_pointing_at() {
   master_pointees=''
-  if [ ! -z "$masters" ]; then
+  if [ ! -z "$master_ips" ]; then
     rm -f /tmp/kube-masters-etcd-ep.txt
     prnt "Api server etcd endpoints:"
-    for mstr in $masters; do
+    for mstr in $master_ips; do
       if [ "$this_host_ip" = "$mstr" ]; then
         master_pointees=$(cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2)
         echo "$this_host_name($mstr) is pointing at -> $master_pointees" >>/tmp/kube-masters-etcd-ep.txt
@@ -777,38 +777,43 @@ probe_endpoints() {
   export PROBE_ENDPOINTS="$normalized_endpoints"
 }
 
-embedded_etcd_endpoints() {
+emd_etcd_endpoints() {
   unset EMBEDDED_ETCD_ENDPOINTS
+  unset EMBEDDED_INITIAL_CLUSTER
   if [ -z "$masters" ]; then
     err "No master(s) address found. Has the system been initialized?"
     return 1
   else
     unset endpoints
+    unset initial_cluster
     for mstr in $masters; do
+      host=$(echo $mstr | cut -d':' -f1)
+      ip=$(echo $mstr | cut -d':' -f2)
+
       if [ -z "$endpoints" ]; then
-        endpoints=$mstr:2379
+        endpoints=$ip:2379
+        initial_cluster=$host=https://$ip:2380
       else
-        endpoints+=",$mstr:2379"
+        endpoints+=",$ip:2379"
+        initial_cluster+=,$host=https://$ip:2380
       fi
     done
     export EMBEDDED_ETCD_ENDPOINTS=$endpoints
-    debug "Embedded etcd endpoints: $endpoints"
+    export EMBEDDED_INITIAL_CLUSTER=$initial_cluster
   fi
 }
-em_endpoint_list() {
+em_ep_state_and_list() {
   unset EMBEDDED_ETCD_ENDPOINT
-  if ! embedded_etcd_endpoints; then
+  if ! emd_etcd_endpoints; then
     return 1
   else
     prnt "Checking embedded cluster endpoins..."
     rm -f /tmp/embedded-etcd-ep-status.txt
-    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
-      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-      --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list | tee /tmp/embedded-etcd-ep-status.txt
+    etcd_cmd --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list &>/tmp/embedded-etcd-ep-status.txt
     if [ "$?" -eq 0 ]; then
       end_point=$(cat /tmp/embedded-etcd-ep-status.txt | head -n 1 | cut -d',' -f5 | xargs)
       export EMBEDDED_ETCD_ENDPOINT=$end_point
+      cat /tmp/embedded-etcd-ep-status.txt
     else
       err "Etcd member list error"
       return 1
@@ -816,7 +821,32 @@ em_endpoint_list() {
   fi
 }
 
-external_etcd_endpoints() {
+pause_masters() {
+  for master_ip in $master_ips; do
+    if [ "$master_ip" = "$this_host_ip" ]; then
+      mv /etc/kubernetes/manifests/{etcd.yaml,kube-apiserver.yaml} $kube_vault
+    else
+      remote_cmd $master_ip mv /etc/kubernetes/manifests/etcd.yaml $kube_vault
+      remote_cmd $master_ip mv /etc/kubernetes/manifests/kube-apiserver.yaml $kube_vault
+    fi
+  done
+}
+
+unpause_masters() {
+  if [ ! -z "$masters" ]; then
+    for master_ip in $master_ips; do
+      if [ "$master_ip" = "$this_host_ip" ]; then
+        mv $kube_vault/etcd.yaml /etc/kubernetes/manifests/
+        mv $kube_vault/kube-apiserver.yaml /etc/kubernetes/manifests/
+      else
+        remote_cmd $master_ip mv $kube_vault/etcd.yaml /etc/kubernetes/manifests/
+        remote_cmd $master_ip mv $kube_vault/kube-apiserver.yaml /etc/kubernetes/manifests/
+      fi
+    done
+  fi
+}
+
+ext_etcd_endpoints() {
   unset EXTERNAL_ETCD_ENDPOINTS
   unset ETCD_INITIAL_CLUSTER
   if [ -z "$etcd_servers" ]; then
@@ -833,36 +863,104 @@ external_etcd_endpoints() {
         initial_cluster=$host=https://$ip:2380
       else
         etcd_endpoints+=,https://$ip:2379
-        #The following needs to be used in systemd conf
         initial_cluster+=,$host=https://$ip:2380
       fi
     done
     export EXTERNAL_ETCD_ENDPOINTS=$etcd_endpoints
     export ETCD_INITIAL_CLUSTER=$initial_cluster
-    debug "etcd initial cluster: $ETCD_INITIAL_CLUSTER"
     debug "External etcd endpoints: $etcd_endpoints"
+    debug "etcd initial cluster: $ETCD_INITIAL_CLUSTER"
   fi
 }
 
-ex_endpoint_list() {
-  if ! external_etcd_endpoints; then
+ex_ep_state_and_list() {
+  if ! ext_etcd_endpoints; then
     return 1
   else
     prnt "Checking external cluster endpoints"
     rm -f /tmp/external-etcd-ep-status.txt
-    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
-      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-      --endpoints=$EXTERNAL_ETCD_ENDPOINTS member list | tee /tmp/external-etcd-ep-status.txt
+    etcd_cmd --endpoints=$EXTERNAL_ETCD_ENDPOINTS member list &>/tmp/external-etcd-ep-status.txt
     if [ "$?" -eq 0 ]; then
       end_point=$(cat /tmp/external-etcd-ep-status.txt | head -n 1 | cut -d',' -f5 | xargs)
       export EXTERNAL_ETCD_ENDPOINT=$end_point
+      cat /tmp/external-etcd-ep-status.txt
     else
       err "Etcd member list error"
       return 1
     fi
   fi
 }
-etcd_cmd() {
-  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key $@
+
+admit_cluster_node() {
+
+  if [ "$#" -ne 3 ]; then
+    err "Usage:'hostname' 'host ip address' cluster[embedded|external]"
+    return 1
+  fi
+  local host=$1
+  local ip=$2
+  local cluster=$3
+
+  local all_etcds="$master_ips $etcd_ips"
+  echo $all_etcds | grep -q $ip
+  if [ "$?" -eq 0 ]; then
+    err "Node($ip) already present -----"
+    #return 1
+  fi
+  unset endpoints
+  if [ "$cluster" = "embedded" ]; then
+    if emd_etcd_endpoints; then
+      endpoints=$EMBEDDED_ETCD_ENDPOINTS
+    else
+      return 1
+    fi
+  fi
+  if [ "$cluster" = "external" ]; then
+    if ext_etcd_endpoints; then
+      endpoints=$EXTERNAL_ETCD_ENDPOINTS
+    else
+      return 1
+    fi
+  fi
+  rm -f /tmp/add_ep_probe_resp.txt
+  etcd_cmd --endpoints=$endpoints member list &>/tmp/add_ep_probe_resp.txt
+
+  cat /tmp/add_ep_probe_resp.txt | grep -q -E 'connection refused|deadline exceeded'
+  [[ "$?" -eq 0 ]] && err "Connection error - $cluster cluster may be down" && return 1
+
+  cat /tmp/add_ep_probe_resp.txt | grep "$ip" | grep 'unstarted'
+  [[ "$?" -eq 0 ]] && err "Node already added to $cluster cluster but not started" && return 1
+
+  cat /tmp/add_ep_probe_resp.txt | grep "$ip" | grep 'started'
+  [[ "$?" -eq 0 ]] && err "Node already part of $cluster cluster" && return 1
+
+  prnt "Adding node($host) with ip($ip) to etcd $cluster cluster"
+
+  echo "From here return 1" && return 1
+
+  etcd_cmd --endpoints=$API_SERVER_ETCD_URL member add $host \
+    --peer-urls=https://$ip:2380 >/tmp/member_add_resp.txt 2>&1
+
+  local err_msg="Cluster is unhealthy - previously added node may not have been started yet"
+
+  cat /tmp/member_add_resp.txt | grep 'unhealthy cluster'
+  [[ "$?" -eq 0 ]] && err "$err_msg" && return 1
+
+  cat /tmp/member_add_resp.txt | grep -q 'ETCD_NAME'
+  [[ "$?" -eq 0 ]] && prnt "Node has been added to the cluster"
+  initial_cluster_url=$(cat /tmp/member_add_resp.txt | grep 'ETCD_INITIAL_CLUSTER' | head -n 1 | cut -d '"'-f2)
+  . gen-systemd-config.sh "$host" "$ip" "$initial_cluster_url"
+  if can_access_ip $ip; then
+    if [ "$this_host_ip" = $ip ]; then
+      cp $gendir/$ip-etcd.service /etc/systemd/system/etcd.service
+    else
+      . copy-systemd-config.sh $ip
+    fi
+    prnt "Starting etcd for admitted etcd($host_and_ip)"
+    . start-external-etcds.sh $ip || return 1
+  else
+    err "Could not access host($ip) - systemd config not copied and server not started"
+    return 1
+  fi
+
 }

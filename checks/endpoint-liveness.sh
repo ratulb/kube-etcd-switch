@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 . utils.sh
 
-if embedded_etcd_endpoints; then
+if emd_etcd_endpoints; then
   if [ $# = 0 ]; then
-    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
-      --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-      --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
+      etcd_cmd --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
     if [ ! $? = 0 ]; then
       err "etcd endpoint list failed"
       return 1
@@ -18,10 +15,7 @@ if embedded_etcd_endpoints; then
     secs=$2
     status=1
     while [ "$i" -gt 0 ] && [[ ! "$status" = 0 ]]; do
-      ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-        --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
-        --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
-        --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
+        etcd_cmd --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list
 
       status=$?
       if [ "$status" -eq 0 ]; then

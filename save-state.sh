@@ -21,8 +21,8 @@ if [ -z "$fileName" ]; then
 fi
 
 server_ips=$etcd_ips
-if [ ! -z "$masters" ]; then
-  for mstr in $masters; do
+if [ ! -z "$master_ips" ]; then
+  for mstr in $master_ips; do
     if [[ ! $etcd_ips =~ "$mstr" ]]; then
       server_ips+=" $mstr"
     fi

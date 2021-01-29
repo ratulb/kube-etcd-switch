@@ -8,10 +8,10 @@ if ca_exists && client_cert_exists; then
   snapshot_name=$1
   cluster=$2
   unset endpoint
-  if [[ "$cluster" = 'embedded' ]] && em_endpoint_list; then
+  if [[ "$cluster" = 'embedded' ]] && em_ep_state_and_list; then
     endpoint=$EMBEDDED_ETCD_ENDPOINT
     snapshot_name="$snapshot_name-em"
-  elif [[ "$cluster" = 'external' ]] && ex_endpoint_list; then
+  elif [[ "$cluster" = 'external' ]] && ex_ep_state_and_list; then
     endpoint=$EXTERNAL_ETCD_ENDPOINT
     snapshot_name="$snapshot_name-ext"
   else

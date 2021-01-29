@@ -9,7 +9,7 @@ fi
 m_address=$1
 read_setup
 
-if [ "$masters" = *"$this_host_ip"* -o "$masters" == *"$this_host_name"* ]; then
+if [[ "$master_ips" =~ "$this_host_ip" ]] || [[ "$master_names" =~ "$this_host_name" ]]; then
   prnt "This host is already part of the cluster($masters) - not setting up kubectl"
   return 0
 fi

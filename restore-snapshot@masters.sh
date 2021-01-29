@@ -18,27 +18,26 @@ if [ "$cluster_state" = 'external-up' ] || [ "$cluster_state" = 'embedded-up' ];
 fi
 
 if [ ! -z "$masters" ]; then
-  for _mstr_ip in $masters; do
-    prnt "Restoring $(basename $etcd_snapshot) for master member $_mstr_ip"
-    . copy-snapshot.sh $etcd_snapshot $_mstr_ip
-    . checks/snapshot-validity@destination.sh $_mstr_ip $etcd_snapshot
+  emd_etcd_endpoints
+  initial_cluster=$EMBEDDED_INITIAL_CLUSTER
+  for master in $masters; do
 
-    next_data_dir $_mstr_ip
+    master_name=$(echo $master | cut -d':' -f1)
+    master_ip=$(echo $master | cut -d':' -f2)
+
+    next_data_dir $master_ip
     restore_path=$NEXT_DATA_DIR
-
-    debug "Restoring at location: ${restore_path} for master member $_mstr_ip"
-
-    . restore-snapshot.sh $etcd_snapshot $restore_path $token $_mstr_ip
-    . remove-admitted-node.sh $_mstr_ip 'external'
-    unset _hostname
-    if is_address_local $_mstr_ip; then
-      _hostname=$this_host_name
-    else
-      _hostname=$(remote_cmd $_mstr_ip hostname)
-    fi
-    prune_etcd_server_list "$_hostname:$_mstr_ip"
-    . stop-external-etcds.sh $_mstr_ip
-    . update-conf-embedded-etcd@masters.sh $restore_path $token $_mstr_ip
+    prnt "Restoring $etcd_snapshot at location: $restore_path for $master_name($master_ip)"
+    initial_cluster=$EMBEDDED_INITIAL_CLUSTER
+    #if [ "$master_ip" = "$master_address" ]; then
+    . copy-snapshot.sh $etcd_snapshot $master_ip
+    . checks/snapshot-validity@destination.sh $master_ip $etcd_snapshot
+    #initial_cluster=$master_name=https://$master_ip:2380
+    . restore-snapshot.sh $etcd_snapshot $restore_path $token $master_ip $initial_cluster
+    #else
+    #  initial_cluster=$EMBEDDED_INITIAL_CLUSTER
+    # fi
+    . update-conf-embedded-etcd@masters.sh $restore_path $token $master_ip $initial_cluster $master_name
   done
   . checks/endpoint-liveness.sh 5 3
   . checks/system-pod-state.sh 5 3

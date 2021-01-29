@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 . utils.sh
-if ! external_etcd_endpoints; then
+if ! ext_etcd_endpoints; then
   return 1
 else
   debug "Checking embedded cluster endpoins..."

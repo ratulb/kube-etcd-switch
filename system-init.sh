@@ -184,9 +184,18 @@ for _me in $master_ip_and_names; do
     _master_ips+="$_me "
   fi
 done
-_master_ips=$(echo $_master_ips | xargs)
-debug "_master_ips: $_master_ips"
-sed -i "s/masters=.*/masters=$_master_ips/g" setup.conf
+unset masters_with_names
+for ip_addr in $_master_ips; do
+  if is_address_local $ip_addr; then
+    masters_with_names+="$(hostname):$ip_addr "
+  else
+    remote_cmd $ip_addr mkdir -p $kube_vault
+    masters_with_names+="$(quiet=yes remote_cmd $ip_addr hostname):$ip_addr "
+  fi
+done
+masters_with_names=$(echo $masters_with_names | xargs)
+debug "masters_with_names $masters_with_names"
+sed -i "s/masters=.*/masters=$masters_with_names/g" setup.conf
 read_setup
 
 for m in $_master_ips; do
