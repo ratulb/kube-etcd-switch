@@ -10,6 +10,12 @@ m_address=$1
 read_setup
 
 if [[ "$master_ips" =~ "$this_host_ip" ]] || [[ "$master_names" =~ "$this_host_name" ]]; then
+  sudo cp /etc/kubernetes/admin.conf ~/.kube/config
+  sudo chown $(id -u):$(id -g) ~/.kube/config
+  chown $(id -u):$(id -g) ~/.kube/config
+  sed -i '/source <(kubectl completion bash)/d' ~/.bashrc
+  echo 'source <(kubectl completion bash)' >>~/.bashrc
+  source ~/.bashrc
   prnt "This host is already part of the cluster($masters) - not setting up kubectl"
   return 0
 fi
@@ -26,8 +32,8 @@ if [ "$?" -ne 0 ]; then
   err "Could not copy kube config from $m_address - Is it a cluster master member?"
   return 1
 fi
-chown $(id -u):$(id -g) ~/.kube/config
 
+chown $(id -u):$(id -g) ~/.kube/config
 sed -i '/source <(kubectl completion bash)/d' ~/.bashrc
 echo 'source <(kubectl completion bash)' >>~/.bashrc
 source ~/.bashrc

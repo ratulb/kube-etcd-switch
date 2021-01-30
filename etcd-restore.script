@@ -12,7 +12,7 @@ ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT \
   --data-dir=$RESTORE_PATH \
   --initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
   --initial-cluster $INITIAL_CLUSTER \
-  --initial-cluster-token=${TOKEN} 
+  --initial-cluster-token=${TOKEN} &>/dev/null
 #  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 #  --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
 #  --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key 2>/dev/null
