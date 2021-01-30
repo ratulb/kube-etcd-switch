@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 'hostname' 'ip'"
-  exit 1
+  return 1
 fi
 . utils.sh
 . checks/ca-cert-existence.sh
@@ -44,4 +44,4 @@ for file in $(ls . | grep ".pem$"); do mv "$file" "${file%.*}.crt"; done
 
 cd - &> /dev/null
 
-prnt "generated certificate and key for $host($ip)"
+prnt "Generated certificate and key for $host($ip)"

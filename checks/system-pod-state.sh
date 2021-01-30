@@ -17,4 +17,4 @@ while [ "$i" > 0 ] && [[ ! "$status" = "Running" ]]; do
   status=$(cat status-report | awk '{if(NR>1)print}' | awk '{print $3}' | sort -u | tr "\n" " "| xargs)
 done
 rm -f status-report
-
+echo ""

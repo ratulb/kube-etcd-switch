@@ -3,27 +3,16 @@
 ETCD_SNAPSHOT=#ETCD_SNAPSHOT#
 RESTORE_PATH=#RESTORE_PATH#
 TOKEN=#TOKEN#
+INITIAL_CLUSTER=#INITIAL_CLUSTER#
 IP_ADDRESS=$(hostname -i)
 IP_ADDRESS=$(echo $IP_ADDRESS | cut -d' ' -f1)
 
-if [ -z "$debug" ]; then
-  ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT \
-    --name=$(hostname) \
-    --data-dir=$RESTORE_PATH \
-    --initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
-    --initial-cluster $(hostname)=https://$IP_ADDRESS:2380 \
-    --initial-cluster-token=${TOKEN} \
-    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-    --cert=/etc/kubernetes/pki/apiserver-etcd-client.crt \
-    --key=/etc/kubernetes/pki/apiserver-etcd-client.key 2>/dev/null
-else
-  ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT \
-    --name=$(hostname) \
-    --data-dir=$RESTORE_PATH \
-    --initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
-    --initial-cluster $(hostname)=https://$IP_ADDRESS:2380 \
-    --initial-cluster-token=${TOKEN} \
-    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-    --cert=/etc/kubernetes/pki/apiserver-etcd-client.crt \
-    --key=/etc/kubernetes/pki/apiserver-etcd-client.key
-fi
+ETCDCTL_API=3 etcdctl snapshot restore $ETCD_SNAPSHOT \
+  --name=$(hostname) \
+  --data-dir=$RESTORE_PATH \
+  --initial-advertise-peer-urls=https://$IP_ADDRESS:2380 \
+  --initial-cluster $INITIAL_CLUSTER \
+  --initial-cluster-token=${TOKEN} &>/dev/null
+#  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+#  --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
+#  --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key 2>/dev/null

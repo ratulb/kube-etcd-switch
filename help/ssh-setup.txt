@@ -1,4 +1,1 @@
-SSH access to a new set of host will be required. This machine's SSH publickey should be added to t
-he /root/.ssh/authorized_keys of the nodes hosting the etcd cluster. Its advisable to use existing keys if alread
-y exist. System will guide the steps and use existing keys if exists. This may not be necessar if access to
-the hosts is already there. This is an one time activity for a set of hosts. Adding new hosts will require to copy the existing $HOME/.ssh/id_rsa.pub to new hosts.
+SSH access to a new set of host will be required. This machine's SSH publickey should be added to the /root/.ssh/authorized_keys of the nodes hosting the etcd cluster. Its advisable to use existing keys if present. This may not be necessary if access to the hosts is already there. This is an one time activity for selected set of hosts. Adding new hosts will require copying the existing $HOME/.ssh/id_rsa.pub to new hosts.

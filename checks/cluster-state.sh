@@ -3,24 +3,23 @@
 command_exists kubectl
 unset cluster_state
 unset cluster_desc
-if can_ping_ip $master_ip; then
-  if can_access_ip $master_ip; then
+command_exists fping || apt install -y fping
+if can_ping_address $master_address; then
+  if can_access_address $master_address; then
     if [ ! -z "$debug" ]; then
-      kubectl cluster-info --request-timeout "5s"
+      kubectl cluster-info --request-timeout "3s"
     else
-      kubectl cluster-info --request-timeout "5s" &>/dev/null
+      kubectl cluster-info --request-timeout "3s" &>/dev/null
     fi
 
     cluster_up=$?
-
-    if [ "$this_host_ip" = "$master_ip" ]; then
-      ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
+    if [ "$this_host_ip" = "$master_address" ]; then
+      cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -q "https://127.0.0.1:2379"
     else
-      . execute-command-remote.sh $master_ip ls /etc/kubernetes/manifests/etcd.yaml &>/dev/null
+      remote_cmd $master_address cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -q "https://127.0.0.1:2379"
     fi
 
     etcd_yaml_present=$?
-
     if [ "$cluster_up" = 0 -a "$etcd_yaml_present" = 0 ]; then
       state_desc="Cluster is running on embedded etcd"
       prnt "$state_desc"
@@ -49,23 +48,18 @@ if can_ping_ip $master_ip; then
       export cluster_state=ukdown
     fi
   else
-    err "Can not access $master_ip - wrong master or system has not been initialized yet."
+    err "Can not access $master_address - wrong master or system has not been initialized yet."
   fi
 
 else
-  err "Could not ping kube cluster master - wrong master($master_ip) or system has not been initialized yet."
+  err "Could not ping kube cluster master - wrong master($master_address) or system has not been initialized yet."
 fi
 read_setup
 api_server_pointing_at
-if [ -z "$API_SERVER_POINTING_AT" ]; then
-  err "No API server etcd endpoint"
-else
-  prnt "API server is pointing at:"
-  prnt "$API_SERVER_POINTING_AT"
-fi
 if [ -z "$etcd_servers" ]; then
   warn "External etcd endpoints are empty"
 else
   prnt "Etcd servers are:"
-  prnt "$etcd_servers"
+  echo "$etcd_servers"
+  echo ""
 fi

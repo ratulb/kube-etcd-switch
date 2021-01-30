@@ -19,7 +19,7 @@ ls -la /etc/kubernetes/pki/etcd
 
 if [ "$master_ip" = $(hostname -i) ]; then
   prnt "This machine is the master"
-  exit 0
+  return 0
 fi
 
 prnt "This machine is not master - showing master information"

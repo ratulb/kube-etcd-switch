@@ -25,6 +25,6 @@ else
   . copy-certs.sh $host $ip
 fi
 
-rm prepare-etcd-dirs.script.tmp
+rm -f prepare-etcd-dirs.script.tmp
 
 prnt "Etcd node $host($ip) was successfully added."

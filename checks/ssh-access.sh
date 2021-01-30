@@ -17,9 +17,9 @@ for ip in $server_ips; do
   if [ "$this_host_ip" = $ip ]; then
     continue
   fi
-  . execute-command-remote.sh $ip "ls -la &>/dev/null"
+  remote_cmd $ip "ls -la &>/dev/null"
   if [ ! "$?" = 0 ]; then
     err "Could not access $ip. Not proceeding!"
-    exit 1
+    return 1
   fi
 done

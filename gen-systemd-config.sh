@@ -3,7 +3,7 @@
 
 if [ "$#" -ne 3 ]; then
   err "Usage: $0 'etcd host' 'etcd ip' 'initial cluster url'" >&2
-  exit 1
+  return 1
 fi
 host=$1
 ip=$2

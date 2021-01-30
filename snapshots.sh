@@ -3,19 +3,18 @@
 clear
 prnt "Manage etcd snapshots(mes)"
 declare -A snapshotActions
-snapshotActions+=(['Quit']='quit')
 snapshotActions+=(['Refresh view']='refresh-view')
 snapshotActions+=(['Save snapshot']='save')
 snapshotActions+=(['Delete all or selected snapshots']='delete')
 snapshotActions+=(['Restore snapshot']='restore')
 snapshotActions+=(['List snapshots']='list')
 snapshotActions+=(['State view']='state-view')
-snapshotActions+=(['Cluster view']='cluster-view')
+snapshotActions+=(['Back to cluster view']='cluster-view')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection(mes): \e[0m'
+PS3=$'\e[92mSelection(mes): \e[0m'
 select action in "${!snapshotActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 7 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${snapshotActions[$action]}" in
@@ -24,13 +23,9 @@ select action in "${!snapshotActions[@]}"; do
         ;;
       save)
         prnt "Saving snapshot"
-        read -p 'Enter file name: ' file_Name
-        if [ ! -z $file_Name ]; then
-          . save-snapshot.sh $file_Name
-        else
-          err "Provide a file name!"
-        fi
-        ;;
+        . widgets/select-and-save-snapshot.sh
+        PS3=$'\e[92mSelection(mes): \e[0m'
+	;;
       delete)
         if saved_snapshot_exists; then
           PS3="Deleting snapshot - choose option: "
@@ -67,7 +62,7 @@ select action in "${!snapshotActions[@]}"; do
             esac
           done
           echo ""
-	  PS3=$'\e[01;32mSelection(mes): \e[0m'
+	  PS3=$'\e[92mSelection(mes): \e[0m'
         else
           err "No snapshot to delete"
         fi
@@ -75,7 +70,7 @@ select action in "${!snapshotActions[@]}"; do
       restore)
         . widgets/select-and-restore-snapshot.sh
         echo ""
-	PS3=$'\e[01;32mSelection(mes): \e[0m'
+	PS3=$'\e[92mSelection(mes): \e[0m'
         ;;
       state-view)
         script=$(readlink -f "states.sh")
@@ -92,7 +87,7 @@ select action in "${!snapshotActions[@]}"; do
         . checks/system-pod-state.sh
         ;;
       restart-runtime)
-        PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
+        PS3=$'\e[92mRestarting k8s runtime - choose option: \e[0m'
         restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
         select restart_option in "${restart_options[@]}"; do
           case "$REPLY" in
@@ -118,7 +113,7 @@ select action in "${!snapshotActions[@]}"; do
           esac
         done
         echo ""
-	PS3=$'\e[01;32mSelection(mes): \e[0m'
+	PS3=$'\e[92mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

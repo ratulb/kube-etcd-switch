@@ -3,7 +3,7 @@
 
 if [ -z $1 ]; then
   err "Usage $0 embedded-up|external-up|matching prefix|listed fileName."
-  exit 1
+  return 1
 fi
 last_saved_state $1
 
@@ -33,7 +33,7 @@ for file_path in "$kube_vault"/system-snaps/*.tar.gz; do
     sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
       $file_path $ip:$kube_vault/system-snap/system-snap.tar.gz
     . execute-script-remote.sh $ip unarchive.script
-    . execute-command-remote.sh $ip "rm -rf $kube_vault/system-snap/system-snap.tar.gz"
+    remote_cmd $ip "rm -rf $kube_vault/system-snap/system-snap.tar.gz"
   fi
   debug "Restored $file_path on $ip"
   prnt "Restored last good state in $ip"

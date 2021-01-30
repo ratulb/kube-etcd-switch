@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
 . utils.sh
+initialize() {
+  prnt "Checking whether initalization requirements are met..."
+  local m_addr=$1
+  debug "initialize(): $m_addr"
+  if check_system_init_reqrmnts_met $m_addr; then
+    prnt "Requirements are satisfied - proceeding with initialization"
+    . system-init.sh $m_addr
+  else
+    err "Requirements are not satified"
+    return 1
+  fi
+}
 re="^[0-9]+$"
 unset choices
-if is_master_ip_set; then
-  prnt "Master ip: $master_ip"
-  PS3=$'\e[01;32mSelect(q to quit): \e[0m'
-  choices=('Initialize system' 'Edit master ip')
+if is_master_set; then
+  prnt "Master address: $master_address"
+  PS3=$'\e[92mSelect(q to quit): \e[0m'
+  choices=('Initialize system' 'Edit master address and initialize')
   unset user_action
   select choice in "${choices[@]}"; do
     if [ "$REPLY" == 'q' ]; then
@@ -17,50 +29,38 @@ if is_master_ip_set; then
       case "$choice" in
         'Initialize system')
           echo "Initializing system..."
-          if can_access_ip $master_ip; then
-            prnt "Checking configurations @$master_ip"
-            if check_system_init_reqrmnts_met $master_ip; then
-              prnt "System configuration checks passed."
-              . checks/confirm-action.sh "Proceed(y)" "Cancelled system init"
-              if [ "$?" -eq 0 ]; then
-                . system-init.sh
-                if [ "$?" -ne 0 ]; then
-                  err "System initialization is not complete!"
-                  return 1
-                else
-                  break
-                fi
-              fi
+          if can_access_address $master_address; then
+            prnt "Initalizing system..."
+            initialize $master_address
+            if [ "$?" -eq 0 ]; then
+              #prnt "System has been initialized successfully"
+              read_setup
             else
-              err "System configuration check @$master_ip failed!"
-              return 1
+              err "System initialization failed"
             fi
           else
-            err "Can not access $master_ip. Has this machine's ssh key been copied to $master_ip?"
+            err "Can not access $master_address. Has this machine's ssh key been copied to $master_address?"
           fi
           #break
           ;;
-        'Edit master ip')
-          echo "Edit master ip: "
+        'Edit master address and initialize')
+          echo "Edit master address: "
           unset address
-          prnt "Master ip(q - cancel)"
-          while [[ -z "$address" ]] || ! is_ip $address; do
-            read -p 'master ip: ' address
+          prnt "Master address(q - cancel)"
+          while [[ -z "$address" ]] || (! is_ip $address && ! is_host_name_ok $address); do
+            read -p 'Master address: ' address
             [ "$address" = "q" ] && break
           done
 
-          prnt "Checking access to $address"
-          if can_access_ip $address; then
-            k8s_master_addr=k8s_master=$address
-            if [ ! -z "$debug" ]; then
-              cat setup.conf
-              sed -i "s/k8s_master=.*/$k8s_master_addr/g" setup.conf
-              cat setup.conf
+          if can_access_address $address; then
+            prnt "Initalizing system..."
+            initialize $address
+            if [ "$?" -eq 0 ]; then
+              #prnt "System has been initialized successfully"
+              read_setup
             else
-              sed -i "s/k8s_master=.*/$k8s_master_addr/g" setup.conf
+              err "System initialization failed"
             fi
-            prnt "Master ip has been updated"
-            read_setup
           else
             err "Can not access $address. Has this machine's ssh key been copied to $address?"
           fi
@@ -70,26 +70,19 @@ if is_master_ip_set; then
     fi
   done
 else
-  prnt "Master ip of kube cluser to manage"
+  prnt "System initialization - Enter  master address"
   unset address
-  read -p 'Master ip ' address
-  if is_ip $address; then
-
-    if [ "$address" != "$this_host_ip" ]; then
-      prnt "Checking access to $address"
-      if can_access_ip $address; then
-        sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
-        prnt "Master ip has been updated"
-        read_setup
-      else
-        err "Can not access $address"
-      fi
-    else
-      sed -i "s/k8s_master=.*/k8s_master=$address/g" setup.conf
-      prnt "Master ip has been updated"
+  read -p 'Master address ' address
+  if can_access_address $address; then
+    prnt "Initalizing system..."
+    initialize $address
+    if [ "$?" -eq 0 ]; then
+      #prnt "System has been initialized successfully"
       read_setup
+    else
+      err "System initialization failed"
     fi
   else
-    err "Not a valid address"
+    err "System not initialized - master address issue"
   fi
 fi

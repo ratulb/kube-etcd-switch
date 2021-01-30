@@ -6,6 +6,6 @@ for ip in $etcd_ips; do
   if [ "$ip" = "$this_host_ip" ]; then
     sudo systemctl status etcd --no-pager
   else
-    . execute-command-remote.sh $ip sudo systemctl status etcd --no-pager
+    remote_cmd $ip sudo systemctl status etcd --no-pager
   fi
 done

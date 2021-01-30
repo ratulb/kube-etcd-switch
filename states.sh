@@ -3,21 +3,20 @@
 clear
 prnt "Manage etcd states(mes)"
 declare -A stateActions
-stateActions+=(['Quit']='quit')
-stateActions+=(['Save the current running etcd state']='save')
+stateActions+=(['Save current etcd state']='save')
 stateActions+=(['Delete all or selected states']='delete')
 stateActions+=(['Restore a saved state']='restore')
 stateActions+=(['List the saved states']='list')
-stateActions+=(['Restore last external etcd state']='last-external')
-stateActions+=(['Restore last embedded etcd state']='last-embedded')
+stateActions+=(['Restore last good external etcd state']='last-external')
+stateActions+=(['Restore last good embedded etcd state']='last-embedded')
 stateActions+=(['Refresh view']='refresh-view')
 stateActions+=(['Snapshot view']='snapshot-view')
-stateActions+=(['Cluster view']='cluster-view')
+stateActions+=(['Back to cluster view']='cluster-view')
 re="^[0-9]+$"
-PS3=$'\e[01;32mSelection(mes): \e[0m'
+PS3=$'\e[92mSelection(mes): \e[0m'
 select option in "${!stateActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 10 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${stateActions[$option]}" in
@@ -47,9 +46,13 @@ select option in "${!stateActions[@]}"; do
                   [ -z "$line" ] && break
                   echo "$line" >>/tmp/state_deletions.tmp
                 done
-                selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
-                delete_saved_states $selected_for_deletions
-                rm -f /tmp/state_deletions.tmp
+                if [ -s /tmp/state_deletions.tmp ]; then
+                  selected_for_deletions=$(cat /tmp/state_deletions.tmp | tr "\n" " " | xargs)
+                  delete_saved_states $selected_for_deletions
+                  rm -f /tmp/state_deletions.tmp
+                else
+                  err "No file(s) selected"
+                fi
                 break
                 ;;
               Back)
@@ -58,7 +61,7 @@ select option in "${!stateActions[@]}"; do
             esac
           done
           echo ""
-	  PS3=$'\e[01;32mSelection(mes): \e[0m'
+          PS3=$'\e[92mSelection(mes): \e[0m'
         else
           err "No saved state to delete"
         fi
@@ -89,7 +92,7 @@ select option in "${!stateActions[@]}"; do
         . checks/system-pod-state.sh
         ;;
       restart-runtime)
-        PS3=$'\e[01;32mRestarting k8s runtime - choose option: \e[0m'
+        PS3=$'\e[92mRestarting k8s runtime - choose option: \e[0m'
         restart_options=("Auto-detect kube nodes" "Enter ips" "Back")
         select restart_option in "${restart_options[@]}"; do
           case "$REPLY" in
@@ -115,7 +118,7 @@ select option in "${!stateActions[@]}"; do
           esac
         done
         echo ""
-	PS3=$'\e[01;32mSelection(mes): \e[0m'
+        PS3=$'\e[92mSelection(mes): \e[0m'
         ;;
       refresh-view)
         script=$(readlink -f "$0")

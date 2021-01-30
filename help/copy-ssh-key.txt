@@ -1,1 +1,1 @@
-Copy the content of $HOME/.ssh/id_rsa.pub to the etcd nodes' and add it to the $HOME/.ssh/authorized_keys. There might be new line characters which might need to be removed.
+Copy the content of $HOME/.ssh/id_rsa.pub to the etcd nodes' and add it to the $HOME/.ssh/authorized_keys. There might be new line characters and they should be removed.
