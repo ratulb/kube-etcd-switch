@@ -73,7 +73,8 @@ read_setup() {
   fi
 
   if [ -z "$etcd_servers" ]; then
-    warn "No etcd servers found in setup.conf"
+    :
+    # warn "No etcd servers found in setup.conf"
   else
     for svr in $etcd_servers; do
       etcd_name=$(echo $svr | cut -d':' -f1)
@@ -807,7 +808,7 @@ em_ep_state_and_list() {
   if ! emd_etcd_endpoints; then
     return 1
   else
-    prnt "Checking embedded cluster endpoins..."
+    prnt "Checking embedded cluster endpoints..."
     rm -f /tmp/embedded-etcd-ep-status.txt
     etcd_cmd --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list &>/tmp/embedded-etcd-ep-status.txt
     if [ "$?" -eq 0 ]; then
