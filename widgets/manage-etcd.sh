@@ -4,7 +4,6 @@ clear
 echo ""
 prnt "Manage external etcd(mee)"
 declare -A extEtcdActions
-extEtcdActions+=(['Nodes']='nodes')
 extEtcdActions+=(['Add node']='add-node')
 extEtcdActions+=(['Remove node']='remove-node')
 extEtcdActions+=(['Etcd cluster status']='etcd-cluster-status')
@@ -17,7 +16,7 @@ re="^[0-9]+$"
 PS3=$'\e[92mSelection(mee): \e[0m'
 select option in "${!extEtcdActions[@]}"; do
 
-  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 9 -o "$REPLY" -lt 1 ]; then
+  if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 8 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
     case "${extEtcdActions[$option]}" in
@@ -119,17 +118,15 @@ select option in "${!extEtcdActions[@]}"; do
             else
               echo "Selected $host_and_ip ($REPLY) for removal"
               echo "Removing etcd node: $host_and_ip"
-              . remove-admitted-node.sh $host_and_ip 'external'
+	      node_ip=$(echo $host_and_ip | cut -d':' -f2)
+              remove_admitted_node $node_ip 'external'
               if [ "$?" -eq 0 ]; then
-                prnt "Removed etcd node($host_and_ip) - updating configuration"
-                prune_etcd_server_list $host_and_ip
-                read_setup
-                . synch-etcd-endpoints.sh
-                sleep 10
-                script=$(readlink -f "$0")
+                sleep 5
+		echo ""
+                script=$(readlink -f "widgets/manage-etcd.sh")
                 exec "$script"
               else
-                err "Failed to remove etcd node($host_and_ip)"
+                :
               fi
             fi
           done

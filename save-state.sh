@@ -66,7 +66,7 @@ mv $cluster_state#$fileName@$when.tar.gz migration-archive && rm -rf $kube_vault
 
 archived_file_name="$(basename $cluster_state#$fileName@$when.tar.gz)"
 archived_file_name=$(echo $archived_file_name | cut -d'.' -f1)
-prnt "Saved state: $archived_file_name for $saved_hosts"
+prnt "Saved state for $saved_hosts"
 if [ ! -z "$skipped_hosts" ]; then 
   err "Could not access $skipped_hosts - State was not saved for!"
 fi

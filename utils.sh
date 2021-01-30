@@ -964,3 +964,140 @@ admit_cluster_node() {
   fi
 
 }
+
+sync_etcd_endpoints() {
+  read_setup
+  if ext_etcd_endpoints; then
+    for each_master in $master_ips; do
+      if [ "$this_host_ip" = "$each_master" ]; then
+        cp /etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
+      else
+        remote_copy $each_master:/etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
+      fi
+      current_url=$(cat kube.draft | grep "\- --etcd-servers" | cut -d '=' -f 2)
+      cluster_etcd_url=$EXTERNAL_ETCD_ENDPOINTS
+      sed -i "s|$current_url|$cluster_etcd_url|g" kube.draft
+      if [ "$this_host_ip" = "$each_master" ]; then
+        mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
+      else
+        remote_copy kube.draft $each_master:/etc/kubernetes/manifests/kube-apiserver.yaml
+      fi
+      rm -f kube.draft
+    done
+  fi
+}
+
+remove_admitted_node() {
+  if [ "$#" -ne 2 ]; then
+    err "Usage: remove_admitted_node 'admitted node ip' 'cluster[embedded|external]'"
+    return 1
+  fi
+  local node_ip=$1
+  local cluster=$2
+  local node_name=''
+  if [ "$node_ip" = "$this_host_ip" ]; then
+    node_name="$this_host_name"
+  else
+    node_name=$(remote_cmd $node_ip hostname)
+  fi
+  local ENDPOINTS=''
+  if [[ "$cluster" = 'external' ]] && ext_etcd_endpoints; then
+    ENDPOINTS=$EXTERNAL_ETCD_ENDPOINTS
+  elif [[ "$cluster" = 'embedded' ]] && emd_etcd_endpoints; then
+    ENDPOINTS=$EMBEDDED_ETCD_ENDPOINTS
+  else
+    err "No cluster endpoint(s) for $cluster. Node($node_ip) not removed"
+    return 1
+  fi
+  prnt "Removing node($node_ip) from $cluster cluster"
+  etcd_cmd --endpoints=$ENDPOINTS member list &>/tmp/rm_ep_probe_resp.txt
+
+  if [ ! -z "$debug" ]; then
+    cat /tmp/rm_ep_probe_resp.txt
+  fi
+
+  cat /tmp/rm_ep_probe_resp.txt | grep 'connection refused|deadline exceeded' | grep https://$node_ip:2380
+  [[ "$?" -eq 0 ]] && err "Removing node $node_ip - cluster is down or not setup" && return 1
+
+  cat /tmp/rm_ep_probe_resp.txt | grep -E 'started|unstarted' | grep -q https://$node_ip:2380
+  if [ "$?" -eq 1 ]; then
+    err "Removing node($node_ip) - Node not part of $cluster cluster"
+    prune_etcd_server_list $node_name:$node_ip
+    sync_etcd_endpoints
+    return 1
+  fi
+  [[ "$?" -eq 1 ]] && err "Removing node($node_ip) - Node not found" && return 1
+
+  cat /tmp/rm_ep_probe_resp.txt | grep -q -E 'started|unstarted' | grep https://$node_ip:2380
+  [[ "$?" -eq 0 ]] && prnt "Removing node($node_ip) from $cluster cluster"
+
+  member_id=$(cat /tmp/rm_ep_probe_resp.txt | grep $node_ip | cut -d ',' -f1 | xargs)
+  debug "Removing member: $member_id from $cluster cluster"
+
+  etcd_cmd --endpoints=$ENDPOINTS member remove $member_id &>/tmp/member-remove-resp.txt
+
+  cat /tmp/member-remove-resp.txt | grep -q -E 'connection refused|deadline exceeded'
+  [[ "$?" -eq 0 ]] && err "Removing node($node_ip) - could not contact $node_ip" && return 1
+
+  cat /tmp/member-remove-resp.txt | grep "Member $member_id removed from"
+  if [ "$?" -eq 0 ]; then
+    prnt "Removing node($node_ip) - node has been removed"
+    prune_etcd_server_list $node_name:$node_ip
+    sync_etcd_endpoints
+    return 0
+  else
+    :
+  fi
+
+  cat /tmp/member-remove-resp.txt | grep -q 're-configuration failed due to not enough started members'
+  [[ "$?" -eq 0 ]] && err "Removing node...($node_ip) - could not remove node due to lack of quorum" && return
+  1
+}
+
+admit_etcd_cluster_node() {
+  if [ "$#" -ne 2 ]; then
+    err "Usage: admit_etcd_cluster_node 'hostname' 'host ip address'"
+    return 1
+  fi
+  api_server_etcd_url
+  host=$1
+  ip=$2
+  host_and_ip=$1:$2
+  prnt "host: $host and ip is $ip"
+
+  etcd_cmd --endpoints=$API_SERVER_ETCD_URL member list &>/tmp/add_ep_probe_resp.txt
+
+  cat /tmp/add_ep_probe_resp.txt | grep -q -E 'connection refused|deadline exceeded'
+  [[ "$?" -eq 0 ]] && err "Connection error" && return 1
+
+  cat /tmp/add_ep_probe_resp.txt | grep "$ip" | grep 'unstarted'
+  [[ "$?" -eq 0 ]] && err "Node already added but not started" && return 1
+
+  cat /tmp/add_ep_probe_resp.txt | grep "$ip" | grep 'started'
+  [[ "$?" -eq 0 ]] && err "Node already added" && return 1
+
+  prnt "Adding node($host) with ip($ip) to etcd cluster"
+
+  etcd_cmd --endpoints=$API_SERVER_ETCD_URL member add $host \
+    --peer-urls=https://$ip:2380 >/tmp/member_add_resp.txt 2>&1
+
+  cat /tmp/member_add_resp.txt | grep 'unhealthy cluster'
+  [[ "$?" -eq 0 ]] && err "Cluster is unhealthy - previously added node may not have been started yet" && return 1
+
+  cat /tmp/member_add_resp.txt | grep -q 'ETCD_NAME'
+  [[ "$?" -eq 0 ]] && prnt "Node has been added to the cluster"
+  initial_cluster_url=$(cat /tmp/member_add_resp.txt | grep 'ETCD_INITIAL_CLUSTER' | head -n 1 | cut -d '"' -f2)
+  . gen-systemd-config.sh $host $ip $initial_cluster_url
+  if can_access_ip $ip; then
+    if [ "$this_host_ip" = $ip ]; then
+      cp $gendir/$ip-etcd.service /etc/systemd/system/etcd.service
+    else
+      . copy-systemd-config.sh $ip
+    fi
+    prnt "Starting etcd for admitted etcd($host_and_ip)"
+    . start-external-etcds.sh $ip || return 1
+  else
+    err "Could not access host($ip) - systemd config not copied and server not started"
+    return 1
+  fi
+}

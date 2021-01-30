@@ -15,7 +15,7 @@ else
   err "No cluster endpoint(s) for $cluster. Node($node_ip) not removed"
   return 1
 fi
-prnt "Going to remove node($node_ip) from $cluster cluster"
+prnt "Removing node($node_ip) from $cluster cluster"
 etcd_cmd --endpoints=$ENDPOINTS member list &>/tmp/rm_ep_probe_resp.txt
 
 if [ ! -z "$debug" ]; then
@@ -30,7 +30,6 @@ if [ "$?" -eq 1 ]; then
   err "Removing node($node_ip) - Node not part of $cluster cluster"
   return 1
 fi
-
 [[ "$?" -eq 1 ]] && err "Removing node($node_ip) - Node not found" && return 1
 
 cat /tmp/rm_ep_probe_resp.txt | grep -q -E 'started|unstarted' | grep https://$node_ip:2380
@@ -47,5 +46,5 @@ cat /tmp/member-remove-resp.txt | grep -q -E 'connection refused|deadline exceed
 cat /tmp/member-remove-resp.txt | grep "Member $member_id removed from"
 ([[ "$?" -eq 0 ]] && prnt "Removing node($node_ip) - node has been removed") || (err "Failed to remove node($node_ip)" && return 1)
 
-cat /tmp/member-remove-resp.txt | grep 're-configuration failed due to not enough started members'
+cat /tmp/member-remove-resp.txt | grep -q 're-configuration failed due to not enough started members'
 [[ "$?" -eq 0 ]] && err "Removing node($node_ip) - could not remove node due to lack of quorum" && return 1
