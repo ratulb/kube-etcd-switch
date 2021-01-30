@@ -1091,7 +1091,7 @@ admit_etcd_cluster_node() {
 
   [[ "$?" -eq 0 ]] && err "Node already is already part of $host_cluster cluster" && return 1
 
-  prnt "Adding node $host_cluster($node_ip_of_host) to etcd cluster"
+  prnt "Adding node $host_being_admitted($node_ip_of_host) to etcd cluster"
 
   etcd_cmd --endpoints=$ENDPOINTS member add $host_being_admitted \
     --peer-urls=https://$node_ip_of_host:2380 >/tmp/member_add_resp.txt 2>&1
