@@ -974,7 +974,7 @@ remove_admitted_node() {
   member_id=$(cat /tmp/rm_ep_probe_resp.txt | grep $node_ip | cut -d ',' -f1 | xargs)
   warn "Removing member: $member_id from $cluster cluster"
   etcd_cmd --endpoints=$ENDPOINTS member remove $member_id &>/tmp/member-remove-resp.txt
-  cat /tmp/member-remove-resp.txt | grep -E 'connection refused|deadline exceeded'
+  cat /tmp/member-remove-resp.txt | grep -q -E 'connection refused|deadline exceeded'
   if [ "$?" -eq 0 ]; then
     err "Removing node($node_ip) - could not contact $node_ip"
     return 1
