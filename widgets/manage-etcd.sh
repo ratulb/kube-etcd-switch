@@ -77,13 +77,9 @@ select option in "${!extEtcdActions[@]}"; do
             prnt "Checking access to $nodeIp..."
             if can_access_ip $nodeIp; then
               prnt "Adding node $nodeName($nodeIp)"
-              . admit-etcd-cluster-node.sh $nodeName $nodeIp
+              admit_etcd_cluster_node $nodeName $nodeIp 'external'
               if [ "$?" -eq 0 ]; then
-                prnt "Updating etcd server configuration"
-                node_being_added=$nodeName:$nodeIp
-                upsert_etcd_server_list $node_being_added
                 prnt "Node($nodeIp) has been added"
-                . synch-etcd-endpoints.sh
               else
                 err "Failed to add node($nodeIp)"
               fi
@@ -118,11 +114,11 @@ select option in "${!extEtcdActions[@]}"; do
             else
               echo "Selected $host_and_ip ($REPLY) for removal"
               echo "Removing etcd node: $host_and_ip"
-	      node_ip=$(echo $host_and_ip | cut -d':' -f2)
+              node_ip=$(echo $host_and_ip | cut -d':' -f2)
               remove_admitted_node $node_ip 'external'
               if [ "$?" -eq 0 ]; then
                 sleep 5
-		echo ""
+                echo ""
                 script=$(readlink -f "widgets/manage-etcd.sh")
                 exec "$script"
               else
