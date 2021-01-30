@@ -831,6 +831,14 @@ pause_masters() {
     fi
   done
 }
+is_etcd_suspended_at() {
+  local master_node_ip=$1
+  if is_address_local $master_node_ip; then
+    [ ! -f /etc/kubernetes/manifests/etcd.yaml ]
+  else
+    remote_cmd $master_node_ip [ ! -f /etc/kubernetes/manifests/etcd.yaml ]
+  fi
+}
 
 unpause_masters() {
   if [ ! -z "$masters" ]; then
