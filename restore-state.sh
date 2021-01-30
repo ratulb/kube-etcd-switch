@@ -7,7 +7,7 @@ if [ -z $1 ]; then
 fi
 last_saved_state $1
 
-SAVED_FILE="$LAST_SAVE"
+SAVED_FILE=$LAST_SAVE
 if [ ! -f "$SAVED_FILE" ]; then
   err "Saved state not found - Can not proceed!"
   return 1
@@ -21,29 +21,28 @@ if [ "$cluster_state" == 'external-up' ]; then
   . stop-external-etcds.sh
 fi
 
-tar xvf "$SAVED_FILE" -C "$kube_vault"
+tar xvf $SAVED_FILE -C $kube_vault
 debug "Prcocessing last good system states in $SAVED_FILE"
 
-for file_path in "$kube_vault"/system-snaps/*.tar.gz; do
-  file_name=$(basename "$file_path")
-  ip=$(echo "$file_name" | cut -d '-' -f 1)
+for file_path in $kube_vault/system-snaps/*.tar.gz; do
+  file_name=$(basename $file_path)
+  ip=$(echo $file_name | cut -d '-' -f 1)
   if [ "$ip" = "$this_host_ip" ]; then
-    tar xvf "$file_path" -C /
+    tar xvf $file_path -C /
   else
-    sudo -u $usr scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-      $file_path $ip:$kube_vault/system-snap/system-snap.tar.gz
-    . execute-script-remote.sh $ip unarchive.script
-    remote_cmd $ip "rm -rf $kube_vault/system-snap/system-snap.tar.gz"
+    remote_copy $file_path $ip:$kube_vault/system-snap/system-snap.tar.gz
+    remote_script $ip unarchive.script
+    remote_cmd $ip rm -rf $kube_vault/system-snap/system-snap.tar.gz
   fi
   debug "Restored $file_path on $ip"
   prnt "Restored last good state in $ip"
 done
-rm -rf "$kube_vault"/system-snaps/*
+rm -rf $kube_vault/system-snaps/*
 
 prnt "Last good states restored on cluster machines"
 
 prnt "Resurrecting etcd"
-state=$(echo "$SAVED_FILE" | xargs basename | cut -d '#' -f 1)
+state=$(echo $SAVED_FILE | xargs basename | cut -d '#' -f 1)
 case "$state" in
   embedded-up)
     . stop-external-etcds.sh

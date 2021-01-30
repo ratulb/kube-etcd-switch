@@ -30,7 +30,8 @@ sed -i '/initial-cluster/d' etcd.draft
 sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-token=$token" etcd.draft
 sed -i "/--client-cert-auth=true/a\    \- --initial-cluster=$initial_cluster" etcd.draft
 if [ "$master_ip" != "$master_address" ]; then
-  :#sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-state=existing" etcd.draft
+  :
+  #sed -i "/--client-cert-auth=true/a\    \- --initial-cluster-state=existing" etcd.draft
 fi
 
 current_etcd_url=$(cat kube.draft | grep "\- --etcd-servers" | cut -d '=' -f 2)

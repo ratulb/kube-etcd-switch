@@ -8,7 +8,7 @@ for ip in $etcd_ips; do
    else
      ping -c 1 $ip
      if [ $? = 0 ]; then
-     . execute-script-remote.sh $ip etcd-status.script
+     remote_script $ip etcd-status.script
      fi
  fi
 done

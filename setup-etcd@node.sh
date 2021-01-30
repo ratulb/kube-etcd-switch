@@ -18,9 +18,9 @@ if [ "$ip" = $this_host_ip ]; then
   cp $gendir/$host{-peer.*,-client.*,-server.*} /etc/kubernetes/pki/etcd/
 else
   prnt "Installing etcd/creating default directories on host($ip)"
-  . execute-script-remote.sh $ip install-etcd.script
+  remote_script $ip install-etcd.script
   dress_up_script prepare-etcd-dirs.script
-  . execute-script-remote.sh $ip prepare-etcd-dirs.script.tmp
+  remote_script $ip prepare-etcd-dirs.script.tmp
   prnt "Copying certs to remote machine $ip"
   . copy-certs.sh $host $ip
 fi

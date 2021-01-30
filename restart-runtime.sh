@@ -19,9 +19,9 @@ else
       sudo systemctl restart kubelet
     else
       prnt "Restarting kube runtime on $node"
-      sudo -u $usr ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout=5" $node systemctl restart docker
+      remote_cmd $node systemctl restart docker
       sleep_few_secs
-      sudo -u $usr ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout=5" $node systemctl restart kubelet
+      remote_cmd $node systemctl restart kubelet
     fi
   done
   prnt "Restarted runtime on $nodes"
