@@ -528,14 +528,14 @@ next_data_dir() {
     count=$(ls -l $default_restore_path 2>/dev/null | grep -c ^d || mkdir -p $default_restore_path)
     if [ $count ] >0 && [ -d $default_restore_path/restore#$((count + 1)) ]; then
       ls -l $default_restore_path | grep ^d >list.txt
-      cat list.txt | cut -d '#' -f 2 >sum.txt
+      cat list.txt 2>/dev/null | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
   else
     count=$(remote_cmd $1 "ls -l $default_restore_path 2>/dev/null | grep -c ^d  || mkdir -p $default_restore_path")
     if [ $count ] >0 && remote_cmd $1 [ -d $default_restore_path/restore#$((count + 1)) ]; then
       remote_cmd $1 "ls -l $default_restore_path | grep ^d >list.txt"
-      cat list.txt | cut -d '#' -f 2 >sum.txt
+      cat list.txt 2>/dev/null | cut -d '#' -f 2 >sum.txt
       count=$(awk '{s+=$1} END {print s}' sum.txt)
     fi
   fi
