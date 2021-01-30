@@ -106,6 +106,8 @@ select option in "${!extEtcdActions[@]}"; do
           count=${#etcdHostAndIps[@]}
           select host_and_ip in "${etcdHostAndIps[@]}"; do
             if [ "$REPLY" == 'q' ]; then
+	      prnt "Exited node removal"
+	      echo ""
               PS3=$'\e[92mSelection(mee): \e[0m'
               break
             fi

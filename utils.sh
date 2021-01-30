@@ -952,8 +952,10 @@ remove_admitted_node() {
     sync_etcd_endpoints
     return 1
   fi
-  [[ "$?" -eq 1 ]] && err "Removing node($node_ip) - Node not found" && return 1
-
+  if [ "$?" -eq 1 ]; then
+    err "Removing node($node_ip) - Node not found"
+    return 1
+  fi
   cat /tmp/rm_ep_probe_resp.txt | grep -E 'started|unstarted' | grep https://$node_ip:2380
   if [ "$?" -eq 0 ]; then
     prnt "Removing node($node_ip) from $cluster cluster"
@@ -961,27 +963,32 @@ remove_admitted_node() {
     err "Node($node_ip) not found for removal"
     return 1
   fi
-
   member_id=$(cat /tmp/rm_ep_probe_resp.txt | grep $node_ip | cut -d ',' -f1 | xargs)
   warn "Removing member: $member_id from $cluster cluster"
-
   etcd_cmd --endpoints=$ENDPOINTS member remove $member_id &>/tmp/member-remove-resp.txt
-
   cat /tmp/member-remove-resp.txt | grep -E 'connection refused|deadline exceeded'
-  [[ "$?" -eq 0 ]] && err "Removing node($node_ip) - could not contact $node_ip" && return 1
-
+  if [ "$?" -eq 0 ]; then
+    err "Removing node($node_ip) - could not contact $node_ip"
+    return 1
+  fi
   cat /tmp/member-remove-resp.txt | grep "Member $member_id removed from"
   if [ "$?" -eq 0 ]; then
-    prnt "Removing node($node_ip) - node has been removed"
+    prnt "Node($node_ip) - is being removed from $cluster cluster"
     prune_etcd_server_list $node_name:$node_ip
     sync_etcd_endpoints
     return 0
   else
     :
   fi
-  msg="Removing node...($node_ip) - could not remove node due to lack of quorum"
+  err_msg="Could not remove $node_name($node_ip) due to lack of quorum"
   cat /tmp/member-remove-resp.txt | grep -q 're-configuration failed due to not enough started members'
-  [[ "$?" -eq 0 ]] && err $msg && return 1
+  if [ "$?" -eq 0 ]; then
+    err "$err_msg"
+    return 1
+  else
+    err "Unknown error occurred while removing $node_name($node_ip)"
+    return 1
+  fi
 }
 
 gen_systemd_config() {
