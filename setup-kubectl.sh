@@ -11,7 +11,6 @@ read_setup
 
 if [[ "$master_ips" =~ "$this_host_ip" ]] || [[ "$master_names" =~ "$this_host_name" ]]; then
   sudo cp /etc/kubernetes/admin.conf ~/.kube/config
-  sudo chown $(id -u):$(id -g) ~/.kube/config
   chown $(id -u):$(id -g) ~/.kube/config
   sed -i '/source <(kubectl completion bash)/d' ~/.bashrc
   echo 'source <(kubectl completion bash)' >>~/.bashrc
