@@ -1030,6 +1030,31 @@ copy_systemd_config() {
     remote_copy $gendir/$to_ip-etcd.service $to_ip:/etc/systemd/system/etcd.service
   fi
 }
+validate_host_name() {
+  local for_ip=$1
+  local given_hostname=$2
+  if can_access_address $for_ip; then
+    if is_address_local $for_ip; then
+      if [ "$this_host_name" = "$given_hostname" ]; then
+        return 0
+      else
+        err "Given hostname '$given_hostname' is wrong for ip $for_ip"
+        return 1
+      fi
+    else
+      remote_hostname=$(remote_cmd $for_ip hostname)
+      if [ "$remote_hostname" = "$given_hostname" ]; then
+        return 0
+      else
+        err "Given hostname '$given_hostname' is wrong for ip $for_ip"
+        return 1
+      fi
+    fi
+  else
+    err "Can not access given ip $for_ip"
+    return 1
+  fi
+}
 
 admit_etcd_cluster_node() {
   if [ "$#" -ne 3 ]; then
@@ -1042,6 +1067,9 @@ admit_etcd_cluster_node() {
   local host_and_ip_pair=$host_being_admitted:$node_ip_of_host
   local ENDPOINTS=''
   local ENDPOINTS=''
+  if ! validate_host_name $node_ip_of_host $host_being_admitted; then
+    return 1
+  fi
   if [[ "$host_cluster" = 'external' ]] && ext_etcd_endpoints; then
     ENDPOINTS=$EXTERNAL_ETCD_ENDPOINTS
   elif [[ "$host_cluster" = 'embedded' ]] && emd_etcd_endpoints; then
