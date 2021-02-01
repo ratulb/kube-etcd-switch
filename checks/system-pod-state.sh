@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . utils.sh
 
-command_exists kubectl
+if command_exists kubectl; then
 prnt "Checking kube-system pods..."
 rm status-report 2>/dev/null
 kubectl -n kube-system get pod | tee status-report
@@ -18,3 +18,7 @@ while [ "$i" > 0 ] && [[ ! "$status" = "Running" ]]; do
 done
 rm -f status-report
 echo ""
+else
+ err "kubectl is not found - Has the system been initialized?"
+ return 1
+fi
