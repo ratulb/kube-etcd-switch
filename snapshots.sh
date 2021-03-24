@@ -13,7 +13,6 @@ snapshotActions+=(['Back to cluster view']='cluster-view')
 re="^[0-9]+$"
 PS3=$'\e[92mSelection(mes): \e[0m'
 select action in "${!snapshotActions[@]}"; do
-
   if ! [[ "$REPLY" =~ $re ]] || [ "$REPLY" -gt 7 -o "$REPLY" -lt 1 ]; then
     err "Invalid selection!"
   else
