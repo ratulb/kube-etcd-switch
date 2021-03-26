@@ -12,6 +12,6 @@ Destroy your cluster by running tests/destructive-script.sh(It will delete every
 
 Save as many states, snapshots - list them, view them, delete them, restore them.
 
-And nodes to external etcd cluster, remove them - setup another etcd cluster - your kubernetes cluster will be safe.
+Add nodes to external etcd cluster, remove them - setup another etcd cluster - your kubernetes cluster will be safe.
 
 Verified for debian buster, ubuntu-16.04 and 18.04, ubuntu-20.04.
