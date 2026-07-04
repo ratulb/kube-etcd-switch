@@ -1,5 +1,14 @@
 # kube-etcd-switch — AGENTS.md
 
+> **Stale project.** Last updated mid-2021. k8s, etcd, kubeadm, and related
+> tooling have evolved significantly. The scripts target etcd `3.4.14` and
+> assume `kubeadm` static-pod etcd. Before using in a modern cluster:
+> - verify etcd version compatibility and update `setup.conf` `etcd_version`
+> - review `install-etcd.script` / `install_etcdctl()` for current download URLs
+> - test against the target k8s version's kubeadm manifest format
+> - check that `systemctl restart docker` in `restart-runtime.sh` is still
+>   the right way to restart the container runtime (containerd? crio?)
+
 ## Structure
 
 - `cluster.sh` — main entrypoint, menu-driven UI
