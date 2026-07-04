@@ -4,6 +4,11 @@ Switch a Kubernetes control plane between **embedded etcd** (kubeadm-style stati
 and **external etcd** (standalone systemd service on dedicated nodes) — and back
 again — without rebuilding the cluster.
 
+> For a step-by-step walkthrough with screenshots — from cluster creation to
+> snapshot, disaster simulation, external etcd recovery, node repair, and
+> switching back — see the accompanying blog post:
+> [*Migrate kubernetes embedded etcd to external etcd — easy back and forth switch*](https://ratulb.github.io/techcottage/2021/07/migrate-kubernetes-embedded-etcd-to-external-etcd-easy-back-and-forth-switch/)
+
 ---
 
 ## Why external etcd?
