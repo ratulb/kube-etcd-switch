@@ -135,18 +135,18 @@ else
 fi
 
 sudo apt update
-command_exists fping || apt install -y fping
+command_exists fping || sudo apt install -y fping
 . install-cfssl.sh
 sudo apt install tree -y
 sudo apt autoremove -y
 sudo apt install -y wget
-sed -i "s/#ETCD_VER#/$etcd_version/g" install-etcd.script
 sed -i "s|#kube_vault#|$kube_vault|g" archive.script
 sed -i "s|#kube_vault#|$kube_vault|g" unarchive.script
 
 sudo mkdir -p $kube_vault/migration-archive
 sudo mkdir -p $default_backup_loc
 sudo mkdir -p $gendir
+sudo chown $(id -u):$(id -g) $gendir
 sudo rm cs.sh
 sudo rm ep.sh
 sudo ln -s checks/cluster-state.sh cs.sh
@@ -163,6 +163,7 @@ if ! [[ "$master_ip_and_names" =~ "$this_host_ip" ]] && ! [[ "$master_ip_and_nam
   debug "Intialization request - using remote host as master"
   prnt "Copying etcd certs to $this_host_ip"
   sudo mkdir -p /etc/kubernetes/pki/etcd/
+  sudo chown $(id -u):$(id -g) /etc/kubernetes/pki/etcd/
 
   remote_copy $master_node_addr:/etc/kubernetes/pki/etcd/ca.crt /etc/kubernetes/pki/etcd/
 
@@ -171,7 +172,10 @@ if ! [[ "$master_ip_and_names" =~ "$this_host_ip" ]] && ! [[ "$master_ip_and_nam
     return 1
   fi
 
-  remote_copy $master_node_addr:/etc/kubernetes/pki/etcd/ca.key /etc/kubernetes/pki/etcd/
+  # ca.key is root-owned 600 on the master, use sudo cat over SSH instead of scp
+  sudo -u $usr ssh -q -o StrictHostKeyChecking=no $master_node_addr \
+    "sudo cat /etc/kubernetes/pki/etcd/ca.key" > /etc/kubernetes/pki/etcd/ca.key
+  chmod 600 /etc/kubernetes/pki/etcd/ca.key
 
   if [ "$?" -ne 0 ]; then
     err "Could not copy ca.key from $master_node_addr. System initialization is not complete!"
@@ -195,8 +199,10 @@ for ip_addr in $_master_ips; do
 done
 masters_with_names=$(echo $masters_with_names | xargs)
 debug "masters_with_names $masters_with_names"
-sed -i "s/masters=.*/masters=$masters_with_names/g" setup.conf
-read_setup
+if [ -n "$masters_with_names" ]; then
+  sed -i "s/masters=.*/masters=$masters_with_names/g" setup.conf
+  read_setup
+fi
 
 for m in $_master_ips; do
   if [ "$m" != "$this_host_ip" ]; then

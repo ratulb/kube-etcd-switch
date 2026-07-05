@@ -5,7 +5,7 @@ if ! emd_etcd_endpoints; then
 else
   debug "Checking embedded cluster endpoins..."
   rm -f /tmp/embedded-etcd-ep-status.txt
-  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
     --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
     --endpoints=$EMBEDDED_ETCD_ENDPOINTS member list | tee /tmp/embedded-etcd-ep-status.txt

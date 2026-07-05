@@ -6,7 +6,7 @@ else
   probe_endpoints
 fi
 if [ -z "$per_endpoint" ]; then
-  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
     --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
     --endpoints=$PROBE_ENDPOINTS member list 2>/dev/null
@@ -17,7 +17,7 @@ else
 
   for endpoint in $endpoints; do
     echo ""
-    ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+    etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt \
       --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key \
       --endpoints=$endpoint member list 2>/dev/null

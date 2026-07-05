@@ -3,7 +3,7 @@
 command_exists kubectl
 unset cluster_state
 unset cluster_desc
-command_exists fping || apt install -y fping
+command_exists fping || sudo apt install -y fping
 if can_ping_address $master_address; then
   if can_access_address $master_address; then
     if [ ! -z "$debug" ]; then
@@ -16,7 +16,7 @@ if can_ping_address $master_address; then
     if [ "$this_host_ip" = "$master_address" ]; then
       cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -q "https://127.0.0.1:2379"
     else
-      remote_cmd $master_address cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -q "https://127.0.0.1:2379"
+      remote_cmd $master_address sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -q "https://127.0.0.1:2379"
     fi
 
     etcd_yaml_present=$?

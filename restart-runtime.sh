@@ -14,12 +14,12 @@ else
   for node in $nodes; do
     if [ "$node" = "$this_host_ip" ]; then
       prnt "Restarting kube runtime on $node"
-      sudo systemctl restart docker
+      sudo systemctl restart containerd
       sleep_few_secs
       sudo systemctl restart kubelet
     else
       prnt "Restarting kube runtime on $node"
-      remote_cmd $node systemctl restart docker
+      remote_cmd $node systemctl restart containerd
       sleep_few_secs
       remote_cmd $node systemctl restart kubelet
     fi

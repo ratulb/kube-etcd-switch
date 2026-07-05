@@ -706,7 +706,7 @@ function trimString() {
   sed 's,^[[:blank:]]*,,' <<<"${string}" | sed 's,[[:blank:]]*$,,'
 }
 etcd_cmd() {
-  ETCDCTL_API=3 etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key $@
+  etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/$(hostname)-client.crt --key=/etc/kubernetes/pki/etcd/$(hostname)-client.key $@
 }
 api_server_pointing_at() {
   master_pointees=''
@@ -720,7 +720,7 @@ api_server_pointing_at() {
       else
         _hostname=$(remote_cmd $mstr hostname)
         master_pointees=$(remote_cmd $mstr \
-          "cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
+          "sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep etcd-servers | cut -d'=' -f2")
         echo "$_hostname($mstr) is pointing at -> $master_pointees" >>/tmp/kube-masters-etcd-ep.txt
       fi
     done
@@ -905,21 +905,43 @@ sync_etcd_endpoints() {
   if ext_etcd_endpoints; then
     for each_master in $master_ips; do
       if [ "$this_host_ip" = "$each_master" ]; then
-        cp /etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
+        sudo cp /etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
       else
-        remote_copy $each_master:/etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
+        remote_cmd $each_master "sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml" >kube.draft
       fi
       current_url=$(cat kube.draft | grep "\- --etcd-servers" | cut -d '=' -f 2)
       cluster_etcd_url=$EXTERNAL_ETCD_ENDPOINTS
       sed -i "s|$current_url|$cluster_etcd_url|g" kube.draft
       if [ "$this_host_ip" = "$each_master" ]; then
-        mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
+        sudo mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
       else
-        remote_copy kube.draft $each_master:/etc/kubernetes/manifests/kube-apiserver.yaml
+        remote_copy kube.draft $each_master:/tmp/kube-apiserver.yaml
+        remote_cmd $each_master "sudo mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml"
       fi
       rm -f kube.draft
     done
   fi
+}
+
+sync_etcd_endpoints_to_embedded() {
+  read_setup
+  embedded_url="https://127.0.0.1:2379"
+  for each_master in $master_ips; do
+    if [ "$this_host_ip" = "$each_master" ]; then
+      sudo cp /etc/kubernetes/manifests/kube-apiserver.yaml kube.draft
+    else
+      remote_cmd $each_master "sudo cat /etc/kubernetes/manifests/kube-apiserver.yaml" >kube.draft
+    fi
+    current_url=$(cat kube.draft | grep "\- --etcd-servers" | cut -d '=' -f 2)
+    sed -i "s|$current_url|$embedded_url|g" kube.draft
+    if [ "$this_host_ip" = "$each_master" ]; then
+      sudo mv kube.draft /etc/kubernetes/manifests/kube-apiserver.yaml
+    else
+      remote_copy kube.draft $each_master:/tmp/kube-apiserver.yaml
+      remote_cmd $each_master "sudo mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml"
+    fi
+    rm -f kube.draft
+  done
 }
 
 remove_admitted_node() {
@@ -1026,9 +1048,10 @@ gen_systemd_config() {
 copy_systemd_config() {
   local to_ip=$1
   if is_address_local $to_ip; then
-    cp $gendir/$to_ip-etcd.service /etc/systemd/system/etcd.service
+    sudo cp $gendir/$to_ip-etcd.service /etc/systemd/system/etcd.service
   else
-    remote_copy $gendir/$to_ip-etcd.service $to_ip:/etc/systemd/system/etcd.service
+    remote_copy $gendir/$to_ip-etcd.service $to_ip:/tmp/etcd.service
+    remote_cmd $to_ip "sudo mv /tmp/etcd.service /etc/systemd/system/etcd.service"
   fi
 }
 validate_host_name() {

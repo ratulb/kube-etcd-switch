@@ -12,7 +12,8 @@ if [ "$this_host_ip" = $2 ]; then
   prnt "Not copying snapshot to localhost."
 else
   debug "Creating snapshot directory $SNAPSHOT_DIR at host($2)"
-  remote_cmd $2 "mkdir -p $SNAPSHOT_DIR"
+  remote_cmd $2 "sudo mkdir -p $SNAPSHOT_DIR"
   prnt "Copying snapshot $(basename $SNAPSHOT) to host($2)"
-  remote_copy $1 $2:$SNAPSHOT_DIR
+  remote_copy $1 $2:/tmp/$(basename $SNAPSHOT)
+  remote_cmd $2 "sudo mv /tmp/$(basename $SNAPSHOT) $SNAPSHOT_DIR/"
 fi

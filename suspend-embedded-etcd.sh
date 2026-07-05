@@ -14,7 +14,7 @@ if [ "$this_host_ip" = "$master_ip" ]; then
 else
   remote_cmd $master_ip ls -la /etc/kubernetes/manifests/etcd.yaml &>/dev/null
   if [ "$?" -eq 0 ]; then
-    remote_cmd $master_ip mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/
+    remote_cmd $master_ip "sudo mv /etc/kubernetes/manifests/etcd.yaml $kube_vault/"
     prnt "Suspended etcd at $master_name($master_ip)"
   else
     err "Suspending etcd - etcd is already suspended at $master_ip"

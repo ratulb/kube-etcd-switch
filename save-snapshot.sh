@@ -29,7 +29,7 @@ if ca_exists && client_cert_exists; then
      etcd_cmd --endpoints=$endpoint snapshot save $ETCD_SNAPSHOT &>/tmp/snapshot-save-mgs.txt
     echo ""
     prnt "etcd snapshot saved at $(basename $ETCD_SNAPSHOT) and status is:"
-    etcdctl snapshot status $ETCD_SNAPSHOT --write-out=table
+    etcdutl snapshot status $ETCD_SNAPSHOT --write-out=table
   fi
 else
   err "Snapshot save failed due to certificate issue"

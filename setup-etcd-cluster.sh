@@ -3,7 +3,7 @@
 . checks/ca-cert-existence.sh || return 1
 . checks/system-initialized.sh || return 1
 servers=$etcd_servers
-if [ "$#" -ge 0 ]; then
+if [ "$#" -gt 0 ]; then
   servers=$@
 fi
 . gen-certs.sh "$servers"
@@ -21,7 +21,10 @@ for host_and_ip in $servers; do
       [ "$?" -eq 0 ] || (err "Failed to copy certs" && return 1)
     else
       prnt "Installing etcd/creating default directories on host($ip)"
-      remote_script $ip install-etcd.script
+      # Bake version into script for remote execution (no setup.conf there)
+      sed "s/\${etcd_version:-3.6.13}/$etcd_version/" install-etcd.script > /tmp/install-etcd-vm.tmp
+      remote_script $ip /tmp/install-etcd-vm.tmp
+      rm -f /tmp/install-etcd-vm.tmp
       dress_up_script prepare-etcd-dirs.script
       remote_script $ip prepare-etcd-dirs.script.tmp
       prnt "Copying certs to remote machine $ip"
