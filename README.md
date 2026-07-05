@@ -51,9 +51,9 @@ certificate gymnastics.
               ▼                           ▼
    ┌─────────────────────┐    ┌──────────────────────┐
    │  Embedded etcd      │    │  External etcd       │
-   │  (static pod)        │    │  (systemd service)  │
-   │  /etc/kubernetes/    │    │  /etc/systemd/system│
-   │  manifests/etcd.yaml │    │  etcd.service       │
+   │  (static pod)       │    │  (systemd service)   │
+   │  /etc/kubernetes/   │    │  /etc/systemd/system/│
+   │  manifests/etcd.yaml│    │  etcd.service        │
    └─────────────────────┘    └──────────────────────┘
          ▲                              ▲
          │                              │
