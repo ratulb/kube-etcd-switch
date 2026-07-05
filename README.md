@@ -42,18 +42,18 @@ certificate gymnastics.
 
 ```
                  ┌─────────────────────────────┐
-                 │     kube-apiserver.yaml      │
-                 │  --etcd-servers=...          │
+                 │     kube-apiserver.yaml     │
+                 │  --etcd-servers=...         │
                  └──────────┬──────────────────┘
                             │
               ┌─────────────┴─────────────┐
               │                           │
               ▼                           ▼
    ┌─────────────────────┐    ┌──────────────────────┐
-   │  Embedded etcd      │    │  External etcd        │
-   │  (static pod)        │    │  (systemd service)    │
-   │  /etc/kubernetes/    │    │  /etc/systemd/system/ │
-   │  manifests/etcd.yaml │    │  etcd.service         │
+   │  Embedded etcd      │    │  External etcd       │
+   │  (static pod)        │    │  (systemd service)  │
+   │  /etc/kubernetes/    │    │  /etc/systemd/system│
+   │  manifests/etcd.yaml │    │  etcd.service       │
    └─────────────────────┘    └──────────────────────┘
          ▲                              ▲
          │                              │
@@ -61,8 +61,8 @@ certificate gymnastics.
                     │
          ┌──────────┴──────────┐
          │   setup.conf        │
-         │   etcd_servers=      │
-         │   masters=           │
+         │   etcd_servers=     │
+         │   masters=          │
          └─────────────────────┘
 ```
 
