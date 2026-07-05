@@ -47,7 +47,7 @@ never locked in — switching back to embedded etcd is a first-class operation.
 ## Architecture
 
 ```
-                 ┌─────────────────────────────┐
+                 ┌─────────────────────────────-┐
                  │     kube-apiserver.yaml      │
                  │  --etcd-servers=<url>        │
                  └──────────┬───────────────────┘
@@ -56,10 +56,10 @@ never locked in — switching back to embedded etcd is a first-class operation.
               │                           │
               ▼                           ▼
    ┌─────────────────────┐   ┌──────────────────────────┐
-   │  Embedded etcd      │   │  External etcd            │
-   │  (kubeadm static    │   │  (systemd on dedicated    │
-   │   pod)              │   │   or shared nodes)        │
-   │  port 2379          │   │  port 2379, 2380          │
+   │  Embedded etcd      │   │  External etcd           │
+   │  (kubeadm static    │   │  (systemd on dedicated   │
+   │   pod)              │   │   or shared nodes)       │
+   │  port 2379          │   │  port 2379, 2380         │
    └─────────────────────┘   └──────────────────────────┘
          ▲                            ▲
          │                            │
